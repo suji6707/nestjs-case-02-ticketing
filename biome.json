@@ -25,6 +25,9 @@
 			},
 			"suspicious": {
 				"noDoubleEquals": "off"
+			},
+			"nursery": {
+				"useExplicitType": "error"
 			}
 		}
 	},
@@ -33,6 +36,9 @@
 			"quoteStyle": "single",
 			"indentStyle": "tab",
 			"trailingCommas": "all"
+		},
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
 		}
 	}
 }

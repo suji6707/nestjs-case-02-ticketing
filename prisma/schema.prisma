@@ -1,0 +1,127 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int      @id @default(autoincrement())
+  email             String   @unique
+  encryptedPassword String   @map("encrypted_password")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @map("updated_at")
+
+  queueTokens  QueueToken[]
+  reservations Reservation[]
+  sessions     Session[]
+
+  @@map("users")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  userId    Int      @map("user_id")
+  user      User     @relation(fields: [userId], references: [id])
+  token     String   @map("token")
+  expiresAt DateTime @map("expires_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model Concert {
+  id          Int    @id @default(autoincrement())
+  title       String
+  description String
+
+  schedules   ConcertSchedule[]
+  queueTokens QueueToken[]
+
+  @@map("concerts")
+}
+
+model ConcertSchedule {
+  id         Int      @id @default(autoincrement())
+  concertId  Int      @map("concert_id")
+  concert    Concert  @relation(fields: [concertId], references: [id])
+  basePrice  Int      @map("base_price")
+  startAt    DateTime @map("start_at")
+  endAt      DateTime @map("end_at")
+  totalSeats Int      @map("total_seats")
+  isSoldOut  Boolean  @default(false) @map("is_sold_out")
+
+  seats Seat[]
+
+  @@index([concertId])
+  @@map("concert_schedules")
+}
+
+model Seat {
+  id         Int             @id @default(autoincrement())
+  scheduleId Int             @map("schedule_id")
+  schedule   ConcertSchedule @relation(fields: [scheduleId], references: [id])
+  number     Int
+  class      String
+  price      Int
+  status     Int             @db.TinyInt
+
+  reservation Reservation?
+  seatLock    SeatLock?
+
+  @@index([scheduleId])
+  @@map("seats")
+}
+
+model SeatLock {
+  id           Int        @id @default(autoincrement())
+  seatId       Int        @map("seat_id")
+  seat         Seat       @relation(fields: [seatId], references: [id])
+  queueTokenId Int        @map("queue_token_id")
+  queueToken   QueueToken @relation(fields: [queueTokenId], references: [id])
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  @@unique([seatId])
+  @@unique([queueTokenId])
+  @@map("seat_locks")
+}
+
+model QueueToken {
+  id        Int     @id @default(autoincrement())
+  concertId Int     @map("concert_id")
+  concert   Concert @relation(fields: [concertId], references: [id])
+  userId    Int     @map("user_id")
+  user      User    @relation(fields: [userId], references: [id])
+
+  seatLock SeatLock?
+
+  @@index([userId])
+  @@index([concertId])
+  @@map("queue_tokens")
+}
+
+model Reservation {
+  id            Int      @id @default(autoincrement())
+  userId        Int      @map("user_id")
+  user          User     @relation(fields: [userId], references: [id])
+  seatId        Int      @map("seat_id")
+  seat          Seat     @relation(fields: [seatId], references: [id])
+  purchasePrice Int      @map("purchase_price")
+  status        Int      @db.TinyInt
+  paidAt        DateTime @map("paid_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([seatId])
+  @@index([userId])
+  @@map("reservations")
+}
