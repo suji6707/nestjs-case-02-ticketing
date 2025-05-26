@@ -7,11 +7,12 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"ignore": []
+		"ignore": ["node_modules", "dist"]
 	},
 	"formatter": {
 		"enabled": true,
-		"indentStyle": "tab"
+		"indentStyle": "tab",
+		"lineWidth": 80
 	},
 	"organizeImports": {
 		"enabled": true
@@ -35,7 +36,8 @@
 		"formatter": {
 			"quoteStyle": "single",
 			"indentStyle": "tab",
-			"trailingCommas": "all"
+			"trailingCommas": "all",
+			"lineWidth": 80
 		},
 		"parser": {
 			"unsafeParameterDecoratorsEnabled": true
