@@ -12,7 +12,7 @@
 	"formatter": {
 		"enabled": true,
 		"indentStyle": "tab",
-		"lineWidth": 80
+		"lineWidth": 100
 	},
 	"organizeImports": {
 		"enabled": true
@@ -37,7 +37,7 @@
 			"quoteStyle": "single",
 			"indentStyle": "tab",
 			"trailingCommas": "all",
-			"lineWidth": 80
+			"lineWidth": 100
 		},
 		"parser": {
 			"unsafeParameterDecoratorsEnabled": true

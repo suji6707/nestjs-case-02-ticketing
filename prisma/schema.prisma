@@ -22,22 +22,8 @@ model User {
 
   queueTokens  QueueToken[]
   reservations Reservation[]
-  sessions     Session[]
 
   @@map("users")
-}
-
-model Session {
-  id        String   @id @default(cuid())
-  userId    Int      @map("user_id")
-  user      User     @relation(fields: [userId], references: [id])
-  token     String   @map("token")
-  expiresAt DateTime @map("expires_at")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @default(now()) @map("updated_at")
-
-  @@index([userId])
-  @@map("sessions")
 }
 
 model Concert {

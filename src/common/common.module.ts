@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common';
-import { PrismaService } from './prisma.service';
+import { PrismaService } from './services/prisma.service';
 
 @Global()
 @Module({
@@ -8,4 +8,4 @@ import { PrismaService } from './prisma.service';
 	providers: [PrismaService],
 	exports: [PrismaService],
 })
-export class DatabaseModule {}
+export class CommonModule {}

@@ -1,3 +1,7 @@
+export interface TokenPayload {
+	userId: number;
+	email: string;
+}
 
 export class UserDomain {
 	id: optional<number>;
