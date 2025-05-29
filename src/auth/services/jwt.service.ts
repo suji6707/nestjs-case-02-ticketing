@@ -4,9 +4,9 @@ import { TokenPayload } from '../domains/user';
 
 @Injectable()
 export class JwtService {
-	signJwtAsync(payload: TokenPayload): Promise<string> {
+	signJwtAsync(payload: TokenPayload, expiresIn: any): Promise<string> {
 		return new Promise<string>((resolve, reject) => {
-			jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn: '3h' }, (err, token) => {
+			jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn }, (err, token) => {
 				if (err) {
 					reject(err);
 				}

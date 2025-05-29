@@ -7,6 +7,8 @@ import { JwtService } from './jwt.service';
 
 @Injectable()
 export class UserService {
+	private readonly expireIn = '3h';
+	
 	constructor(
 		private readonly userRepository: UserRepository,
 		private readonly jwtService: JwtService,
@@ -23,7 +25,7 @@ export class UserService {
 		const token = await this.jwtService.signJwtAsync({
 			userId: user.id,
 			email: user.email,
-		});
+		}, this.expireIn);
 
 		return { token };
 	}
@@ -40,7 +42,8 @@ export class UserService {
 		const token = await this.jwtService.signJwtAsync({
 			userId: user.id,
 			email: user.email,
-		});
+		}, this.expireIn);
+		
 		return { token };
 	}
 }
