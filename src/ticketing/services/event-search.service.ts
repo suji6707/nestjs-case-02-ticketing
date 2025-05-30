@@ -14,5 +14,5 @@ export class EventSearchService {
 
 	async getSchedules(userId: number, dto: ConcertScheduleRequestDto): Promise<ConcertSchduleResponseDto> {
 		return this.concertRepository.findSchedules(userId, dto.concertId);
-	
+	}
 }
