@@ -31,3 +31,15 @@ export class PaymentRequestDto {
 	@IsString()
 	paymentToken: string;
 }
+
+export class ConcertScheduleRequestDto {
+	@ApiProperty({ example: 1, description: '콘서트 ID' })
+	@Type(() => Number)
+	@IsNumber()
+	concertId: number;
+
+	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: '대기열 토큰' })
+	@IsString()
+	queueToken: string;
+}
+	
