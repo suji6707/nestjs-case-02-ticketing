@@ -28,7 +28,7 @@ sequenceDiagram
         end
     end
 
-    Note right of W: Worker: 예약 페이지 최대 잔류시간 3분 타이머 시작 (for queue_token)
+    Note right of W: Worker: 예약 페이지 최대 잔류시간 3분 타이머 시작
 
     C->>S: 날짜, 좌석 조회 요청 (queue_token)
     S->>S: Check Redis: if queue_token.status == PROCESSING
@@ -46,13 +46,13 @@ sequenceDiagram
             S->>S: 임시배정 (DB: seat status PENDING)
             S->>S: Redis: 기존 queue_token (PROCESSING) 삭제
             S->>S: Redis: 임시결제_token 생성 (with payment TTL, e.g., 5 mins)
-            S-->>C: 임시배정 완료, 결제 진행 안내
+            S-->>C: 임시배정 완료, 🔺임시결제_token 발급
         else Seat Lock 획득 실패
             S-->>C: 좌석 선택 불가 (이미 잠김/판매됨)
         end
-    else Token NOT PROCESSING (timed out by Worker before user action)
+    else Token NOT EXISTS (timed out by Worker before user action)
          S-->>C: 예약 시간 초과 (페이지 비활성)
-            Note right of W: Worker: job 종료 전 redis token 삭제
+            Note right of W: Worker: job 종료 전 queue_token 삭제
     end
 
     C->>S: 결제 요청 (임시결제_token)
