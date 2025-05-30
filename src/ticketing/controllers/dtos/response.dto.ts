@@ -68,3 +68,45 @@ export class ConcertSchduleResponseDto {
 	})
 	schedules: ConcertScheduleItem[];
 }
+
+export class ConcertSeatItem {
+	@ApiProperty({ example: 1, description: '좌석 ID' })
+	id: number;
+
+	@ApiProperty({ example: 1, description: '좌석 번호' })
+	number: number;
+
+	@ApiProperty({ example: 'A', description: '좌석 등급' })
+	class: string;
+
+	@ApiProperty({ example: 10000, description: '좌석 가격' })
+	price: number;
+
+	@ApiProperty({ example: 0, description: '좌석 상태' })
+	status: number;
+}
+
+export class ConcertSeatResponseDto {
+	@ApiProperty({
+		type: [ConcertSeatItem],
+		description: '예약 가능한 콘서트 좌석 리스트',
+		example: [
+			{
+				id: 1,
+				number: 1,
+				class: 'A',
+				price: 10000,
+				status: 0,
+			},
+			{
+				id: 2,
+				number: 2,
+				class: 'B',
+				price: 20000,
+				status: 0,
+			},
+		],
+	})
+	seats: ConcertSeatItem[];
+}
+	

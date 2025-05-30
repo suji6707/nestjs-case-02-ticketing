@@ -5,8 +5,12 @@ import { Request } from 'express';
 import { ReservationService } from '../services/reservation.service';
 import { PaymentRequestDto, QueueTokenRequestDto, ReserveRequestDto } from './dtos/request.dto';
 import { PaymentResponseDto, QueueTokenResponseDto, ReserveResponseDto } from './dtos/response.dto';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { UseGuards } from '@nestjs/common';
+import { AuthGuard } from '../../auth/services/auth.guard';
 
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 @Controller('/ticketing/reservation')
 export class ReservationController {
 	constructor(private readonly reservationService: ReservationService) {}
