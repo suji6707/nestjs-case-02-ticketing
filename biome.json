@@ -7,11 +7,12 @@
 	},
 	"files": {
 		"ignoreUnknown": false,
-		"ignore": []
+		"ignore": ["node_modules", "dist"]
 	},
 	"formatter": {
 		"enabled": true,
-		"indentStyle": "tab"
+		"indentStyle": "tab",
+		"lineWidth": 100
 	},
 	"organizeImports": {
 		"enabled": true
@@ -25,6 +26,9 @@
 			},
 			"suspicious": {
 				"noDoubleEquals": "off"
+			},
+			"nursery": {
+				"useExplicitType": "error"
 			}
 		}
 	},
@@ -32,7 +36,11 @@
 		"formatter": {
 			"quoteStyle": "single",
 			"indentStyle": "tab",
-			"trailingCommas": "all"
+			"trailingCommas": "all",
+			"lineWidth": 100
+		},
+		"parser": {
+			"unsafeParameterDecoratorsEnabled": true
 		}
 	}
 }
