@@ -8,7 +8,7 @@ import { JwtService } from './jwt.service';
 @Injectable()
 export class UserService {
 	private readonly expireIn = '3h';
-	
+
 	constructor(
 		private readonly userRepository: UserRepository,
 		private readonly jwtService: JwtService,
@@ -22,10 +22,13 @@ export class UserService {
 		});
 		const user = await this.userRepository.save(newUser);
 
-		const token = await this.jwtService.signJwtAsync({
-			userId: user.id,
-			email: user.email,
-		}, this.expireIn);
+		const token = await this.jwtService.signJwtAsync(
+			{
+				userId: user.id,
+				email: user.email,
+			},
+			this.expireIn,
+		);
 
 		return { token };
 	}
@@ -35,15 +38,21 @@ export class UserService {
 		if (!user) {
 			throw new Error('User not found');
 		}
-		const isPasswordValid = await bcrypt.compare(password, user.encryptedPassword);
+		const isPasswordValid = await bcrypt.compare(
+			password,
+			user.encryptedPassword,
+		);
 		if (!isPasswordValid) {
 			throw new Error('Invalid password');
 		}
-		const token = await this.jwtService.signJwtAsync({
-			userId: user.id,
-			email: user.email,
-		}, this.expireIn);
-		
+		const token = await this.jwtService.signJwtAsync(
+			{
+				userId: user.id,
+				email: user.email,
+			},
+			this.expireIn,
+		);
+
 		return { token };
 	}
 }

@@ -6,9 +6,17 @@ import { HttpExceptionFilter } from './common/services/exception.filter';
 import { TicketingModule } from './ticketing/ticketing.module';
 import { QueueModule } from './queue/queue.module';
 import { PaymentModule } from './payment/payment.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-	imports: [CommonModule, AuthModule, TicketingModule, QueueModule, PaymentModule],
+	imports: [
+		ConfigModule.forRoot(),
+		CommonModule,
+		AuthModule,
+		TicketingModule,
+		QueueModule,
+		PaymentModule,
+	],
 	controllers: [],
 	providers: [
 		{

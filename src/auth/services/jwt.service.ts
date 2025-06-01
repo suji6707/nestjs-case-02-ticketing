@@ -6,12 +6,17 @@ import { TokenPayload } from '../domains/user';
 export class JwtService {
 	signJwtAsync(payload: TokenPayload, expiresIn: any): Promise<string> {
 		return new Promise<string>((resolve, reject) => {
-			jwt.sign(payload, process.env.JWT_SECRET_KEY, { expiresIn }, (err, token) => {
-				if (err) {
-					reject(err);
-				}
-				resolve(token);
-			});
+			jwt.sign(
+				payload,
+				process.env.JWT_SECRET_KEY,
+				{ expiresIn },
+				(err, token) => {
+					if (err) {
+						reject(err);
+					}
+					resolve(token);
+				},
+			);
 		});
 	}
 

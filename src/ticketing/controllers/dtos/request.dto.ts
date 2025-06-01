@@ -15,7 +15,10 @@ export class ReserveRequestDto {
 	@IsNumber()
 	concertId: number;
 
-	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: '대기열 토큰' })
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '대기열 토큰',
+	})
 	@IsString()
 	queueToken: string;
 }
@@ -27,19 +30,28 @@ export class PaymentRequestDto {
 	@Type(() => Number)
 	reservationIds: number[];
 
-	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: '결제 대기 토큰' })
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '결제 대기 토큰',
+	})
 	@IsString()
 	paymentToken: string;
 }
 
 export class ConcertScheduleRequestDto {
-	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: '대기열 토큰' })
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '대기열 토큰',
+	})
 	@IsString()
 	queueToken: string;
 }
-	
+
 export class ConcertSeatRequestDto {
-	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: '대기열 토큰' })
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '대기열 토큰',
+	})
 	@IsString()
 	queueToken: string;
 }

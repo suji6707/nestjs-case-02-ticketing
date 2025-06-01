@@ -1,4 +1,4 @@
-import { ApiProperty } from "@nestjs/swagger";
+import { ApiProperty } from '@nestjs/swagger';
 
 export class SignUpResponseDto {
 	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: 'JWT 토큰' })

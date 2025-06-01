@@ -4,5 +4,4 @@ import { QueueService } from '../services/queue.service';
 @Controller('queue')
 export class QueueController {
 	constructor(private readonly queueService: QueueService) {}
-
 }

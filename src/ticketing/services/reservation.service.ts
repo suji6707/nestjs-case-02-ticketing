@@ -1,18 +1,36 @@
 import { Injectable } from '@nestjs/common';
 import { ConcertRepository } from '../repositories/concert.repository';
-import { PaymentResponseDto, QueueTokenResponseDto, ReserveResponseDto } from '../controllers/dtos/response.dto';
+import {
+	PaymentResponseDto,
+	QueueTokenResponseDto,
+	ReserveResponseDto,
+} from '../controllers/dtos/response.dto';
 
 @Injectable()
 export class ReservationService {
 	constructor(private readonly concertRepository: ConcertRepository) {}
 
-	async getToken(userId: number, concertId: number): Promise<QueueTokenResponseDto> {
+	async createToken(
+		userId: number,
+		concertId: number,
+	): Promise<QueueTokenResponseDto> {
+		const payload = {
+			userId,
+			concertId,
+			status: PROCESSING,
+			purpose: 'QUEUE_ENTRY',
+		};
+		// generate jwt token
+		// redis set
 		return {
 			queueToken: 'queue-token',
 		};
 	}
 
-	async reserve(userId: number, concertId: number): Promise<ReserveResponseDto> {
+	async reserve(
+		userId: number,
+		concertId: number,
+	): Promise<ReserveResponseDto> {
 		return {
 			reservationIds: [],
 			paymentToken: 'payment-token',
@@ -24,7 +42,10 @@ export class ReservationService {
 	 * - paymentService.charge(userId, amount);
 	 * - 좌석 임시배정 및 대기열 토큰 만료
 	 */
-	async payment(userId: number, reservationIds: number[]): Promise<PaymentResponseDto> {
+	async payment(
+		userId: number,
+		reservationIds: number[],
+	): Promise<PaymentResponseDto> {
 		return {
 			reservationIds,
 		};
