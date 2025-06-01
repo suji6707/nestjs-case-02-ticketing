@@ -9,11 +9,6 @@
 		"ignoreUnknown": false,
 		"ignore": ["node_modules", "dist"]
 	},
-	"formatter": {
-		"enabled": true,
-		"indentStyle": "tab",
-		"lineWidth": 100
-	},
 	"organizeImports": {
 		"enabled": true
 	},
@@ -37,7 +32,7 @@
 			"quoteStyle": "single",
 			"indentStyle": "tab",
 			"trailingCommas": "all",
-			"lineWidth": 100
+			"lineWidth": 80
 		},
 		"parser": {
 			"unsafeParameterDecoratorsEnabled": true
