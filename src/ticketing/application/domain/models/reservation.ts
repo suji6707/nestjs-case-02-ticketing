@@ -1,0 +1,42 @@
+export enum ReservationStatus {
+	PENDING = 0,
+	CONFIRMED = 1,
+	EXPIRED = 2,
+	CANCELED = 3,
+}
+
+export class Reservation {
+	id: optional<number>;
+	userId: number;
+	seatId: number;
+	purchasePrice: number;
+	status: ReservationStatus;
+	paidAt: optional<Date>;
+	createdAt: optional<Date>;
+
+	constructor({
+		id,
+		userId,
+		seatId,
+		status,
+		purchasePrice,
+		paidAt,
+		createdAt,
+	}: {
+		id?: optional<number>;
+		userId: number;
+		seatId: number;
+		status: ReservationStatus;
+		purchasePrice: number;
+		paidAt?: optional<Date>;
+		createdAt?: optional<Date>;
+	}) {
+		if (id) this.id = id;
+		this.userId = userId;
+		this.seatId = seatId;
+		this.status = status;
+		this.purchasePrice = purchasePrice;
+		this.paidAt = paidAt; // nullable
+		this.createdAt = createdAt ?? new Date();
+	}
+}

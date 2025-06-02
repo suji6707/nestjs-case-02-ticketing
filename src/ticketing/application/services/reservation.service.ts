@@ -1,31 +1,16 @@
-import { Injectable } from '@nestjs/common';
-import { ConcertRepository } from '../repositories/concert.repository';
+import { Inject, Injectable } from '@nestjs/common';
 import {
 	PaymentResponseDto,
-	QueueTokenResponseDto,
 	ReserveResponseDto,
-} from '../controllers/dtos/response.dto';
+} from '../../controllers/dtos/response.dto';
+import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 
 @Injectable()
 export class ReservationService {
-	constructor(private readonly concertRepository: ConcertRepository) {}
-
-	async createToken(
-		userId: number,
-		concertId: number,
-	): Promise<QueueTokenResponseDto> {
-		const payload = {
-			userId,
-			concertId,
-			status: PROCESSING,
-			purpose: 'QUEUE_ENTRY',
-		};
-		// generate jwt token
-		// redis set
-		return {
-			queueToken: 'queue-token',
-		};
-	}
+	constructor(
+		@Inject('IConcertRepository')
+		private readonly concertRepository: IConcertRepository,
+	) {}
 
 	async reserve(
 		userId: number,
