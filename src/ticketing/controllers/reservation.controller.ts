@@ -5,7 +5,8 @@ import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthGuard } from '../../auth/services/auth.guard';
-import { ReservationService } from '../services/reservation.service';
+import { ReservationService } from '../application/services/reservation.service';
+import { TokenService } from '../application/services/token.service';
 import {
 	PaymentRequestDto,
 	QueueTokenRequestDto,
@@ -21,7 +22,10 @@ import {
 @UseGuards(AuthGuard)
 @Controller('/ticketing/reservation')
 export class ReservationController {
-	constructor(private readonly reservationService: ReservationService) {}
+	constructor(
+		private readonly reservationService: ReservationService,
+		private readonly tokenService: TokenService,
+	) {}
 
 	// 대기열 토큰발급 (TTL 1시간)
 	@Post('/token')
@@ -35,7 +39,7 @@ export class ReservationController {
 		@Body() body: QueueTokenRequestDto,
 	): Promise<QueueTokenResponseDto> {
 		const userId = req.userId;
-		return this.reservationService.createToken(userId, body.concertId);
+		return this.tokenService.createToken(userId, body.concertId);
 	}
 
 	// 예약 요청 -> 대기열 토큰 삭제, 임시 결제 토큰 발급 (TTL 5분)

@@ -1,6 +1,9 @@
-import { Controller, Get, Req, Body, Param, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
-import { EventSearchService } from '../services/event-search.service';
+import { AuthGuard } from '../../auth/services/auth.guard';
+import { EventSearchService } from '../application/services/event-search.service';
 import {
 	ConcertScheduleRequestDto,
 	ConcertSeatRequestDto,
@@ -9,9 +12,6 @@ import {
 	ConcertSchduleResponseDto,
 	ConcertSeatResponseDto,
 } from './dtos/response.dto';
-import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
-import { UseGuards } from '@nestjs/common';
-import { AuthGuard } from '../../auth/services/auth.guard';
 
 @Controller('/ticketing/search')
 export class EventSearchController {

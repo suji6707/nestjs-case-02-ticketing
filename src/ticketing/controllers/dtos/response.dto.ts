@@ -91,7 +91,7 @@ export class ConcertSeatItem {
 	number: number;
 
 	@ApiProperty({ example: 'A', description: '좌석 등급' })
-	class: string;
+	className: string;
 
 	@ApiProperty({ example: 10000, description: '좌석 가격' })
 	price: number;
@@ -108,14 +108,14 @@ export class ConcertSeatResponseDto {
 			{
 				id: 1,
 				number: 1,
-				class: 'A',
+				className: 'A',
 				price: 10000,
 				status: 0,
 			},
 			{
 				id: 2,
 				number: 2,
-				class: 'B',
+				className: 'B',
 				price: 20000,
 				status: 0,
 			},
