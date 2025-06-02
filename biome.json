@@ -20,7 +20,8 @@
 				"useImportType": "off"
 			},
 			"suspicious": {
-				"noDoubleEquals": "off"
+				"noDoubleEquals": "off",
+				"noExplicitAny": "off"
 			},
 			"nursery": {
 				"useExplicitType": "error"

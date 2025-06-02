@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { UserPoint } from '@prisma/client';
+import { UserPointEntity } from '@prisma/client';
 import { PrismaService } from '../../common/services/prisma.service';
 
 @Injectable()
@@ -7,7 +7,7 @@ export class PaymentService {
 	constructor(private readonly prismaService: PrismaService) {}
 
 	async charge(userId: number, amount: number): Promise<{ balance: number }> {
-		const userPoint = await this.prismaService.userPoint.update({
+		const userPoint = await this.prismaService.userPointEntity.update({
 			where: {
 				userId,
 			},
@@ -21,7 +21,7 @@ export class PaymentService {
 	}
 
 	async getBalance(userId: number): Promise<{ balance: number }> {
-		const userPoint = await this.prismaService.userPoint.findUnique({
+		const userPoint = await this.prismaService.userPointEntity.findUnique({
 			where: {
 				userId,
 			},

@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { SignUpResponseDto } from '../controllers/dtos/response.dto';
-import { UserDomain } from '../domains/user';
+import { User } from '../domains/user';
 import { UserRepository } from '../repositories/user.repository';
 import { JwtService } from './jwt.service';
 
@@ -16,7 +16,7 @@ export class UserService {
 
 	async signUp(email: string, password: string): Promise<SignUpResponseDto> {
 		const encryptedPassword = await bcrypt.hash(password, 10);
-		const newUser = new UserDomain({
+		const newUser = new User({
 			email,
 			encryptedPassword,
 		});

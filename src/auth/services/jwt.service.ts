@@ -1,10 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
-import { TokenPayload } from '../domains/user';
 
 @Injectable()
 export class JwtService {
-	signJwtAsync(payload: TokenPayload, expiresIn: any): Promise<string> {
+	signJwtAsync(payload: any, expiresIn: any): Promise<string> {
 		return new Promise<string>((resolve, reject) => {
 			jwt.sign(
 				payload,
@@ -20,13 +19,13 @@ export class JwtService {
 		});
 	}
 
-	verifyJwtAsync(token: string): Promise<TokenPayload> {
-		return new Promise<TokenPayload>((resolve, reject) => {
+	verifyJwtAsync(token: string): Promise<any> {
+		return new Promise<any>((resolve, reject) => {
 			jwt.verify(token, process.env.JWT_SECRET_KEY, (err, decoded) => {
 				if (err) {
 					reject(err);
 				}
-				resolve(decoded as TokenPayload);
+				resolve(decoded);
 			});
 		});
 	}

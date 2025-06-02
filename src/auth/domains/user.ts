@@ -1,9 +1,4 @@
-export interface TokenPayload {
-	userId: number;
-	email: string;
-}
-
-export class UserDomain {
+export class User {
 	id: optional<number>;
 	email: string;
 	encryptedPassword: string;
