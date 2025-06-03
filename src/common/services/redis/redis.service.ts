@@ -23,7 +23,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 		value: string,
 		ttl?: number,
 		nx?: boolean,
-	): Promise<string> {
+	): Promise<boolean> {
 		const result = await this.client.set(
 			key,
 			value,
@@ -32,9 +32,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 			nx ? 'NX' : undefined,
 		);
 		if (result !== 'OK') {
-			throw new Error(`Failed to set key: ${key}`);
+			throw new Error(`Failed to acquire lock: ${key}`);
 		}
-		return value;
+		return true;
 	}
 
 	async get(key: string): Promise<string | null> {

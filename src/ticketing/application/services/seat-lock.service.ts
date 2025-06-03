@@ -16,11 +16,13 @@ export class SeatLockService {
 		return !!result;
 	}
 
-	async lockSeat(seatId: number, queueToken: string): Promise<string> {
+	async lockSeat(seatId: number, queueToken: string): Promise<boolean> {
 		const key = this._getLockKey(seatId);
 		// set value as queueToken
-		await this.redisService.set(key, queueToken, SEAT_LOCK_TTL, true);
-		return queueToken;
+		const result = await this.redisService
+			.set(key, queueToken, SEAT_LOCK_TTL, true)
+			.catch(() => false);
+		return result;
 	}
 
 	async unlockSeat(seatId: number, lockValue: string): Promise<boolean> {
