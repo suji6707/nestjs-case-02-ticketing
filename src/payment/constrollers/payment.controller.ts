@@ -3,7 +3,7 @@ import { Body } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthGuard } from '../../auth/application/services/auth.guard';
-import { PaymentService } from '../services/payment.service';
+import { PaymentService } from '../application/services/payment.service';
 import { ChargeRequestDto, PointUseRequestDto } from './dtos/request.dto';
 import {
 	BalanceResponseDto,
@@ -16,17 +16,6 @@ import {
 @Controller('/payment')
 export class PaymentController {
 	constructor(private readonly paymentService: PaymentService) {}
-
-	@Get('/balance')
-	@ApiOperation({ summary: '포인트 잔액 조회' })
-	@ApiOkResponse({
-		type: BalanceResponseDto,
-		description: '포인트 잔액 조회 성공',
-	})
-	async getBalance(@Req() req: Request): Promise<BalanceResponseDto> {
-		const userId = req.userId;
-		return this.paymentService.getBalance(userId);
-	}
 
 	@Patch('/charge')
 	@ApiOperation({ summary: '포인트 충전' })
