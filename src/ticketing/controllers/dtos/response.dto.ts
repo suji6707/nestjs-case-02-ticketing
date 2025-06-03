@@ -25,11 +25,9 @@ export class PaymentTokenResponseDto implements ITokenResponseDto {
 }
 
 export class ReserveResponseDto {
-	@ApiProperty({ example: [1], description: '예약 ID 리스트' })
-	@IsArray()
-	@IsNumber({}, { each: true })
-	@Type(() => Number)
-	reservationIds: number[];
+	@ApiProperty({ example: 1, description: '예약 ID' })
+	@IsNumber()
+	reservationId: number;
 
 	@ApiProperty({
 		example: 'eyJhbGciOiJIUI6I...HDk',
