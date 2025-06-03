@@ -4,8 +4,8 @@ import {
 	ConcertSeatResponseDto,
 } from '../../controllers/dtos/response.dto';
 import { Concert } from '../domain/models/concert';
-import { ITokenService } from '../interfaces/itoken.service';
-import { IConcertRepository } from '../interfaces/repositories/iconcert.repository';
+import { IConcertRepository } from '../domain/repositories/iconcert.repository';
+import { ITokenService } from './interfaces/itoken.service';
 
 @Injectable()
 export class EventSearchService {

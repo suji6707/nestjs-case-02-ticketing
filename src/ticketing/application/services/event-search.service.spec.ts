@@ -1,6 +1,6 @@
-import { ITokenService } from '../interfaces/itoken.service';
-import { IConcertRepository } from '../interfaces/repositories/iconcert.repository';
+import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 import { EventSearchService } from './event-search.service';
+import { ITokenService } from './interfaces/itoken.service';
 
 describe('EventSearchService', () => {
 	let eventSearchService: EventSearchService;

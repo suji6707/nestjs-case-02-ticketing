@@ -5,7 +5,7 @@ import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthGuard } from '../../auth/services/auth.guard';
-import { ITokenService } from '../application/interfaces/itoken.service';
+import { ITokenService } from '../application/services/interfaces/itoken.service';
 import { ReservationService } from '../application/services/reservation.service';
 import {
 	PaymentRequestDto,

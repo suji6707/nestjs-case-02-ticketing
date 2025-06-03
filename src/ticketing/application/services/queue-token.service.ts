@@ -7,7 +7,7 @@ import { TokenPurpose, TokenStatus } from '../domain/models/token';
 import {
 	ICreateQueueTokenParams,
 	ITokenService,
-} from '../interfaces/itoken.service';
+} from './interfaces/itoken.service';
 
 @Injectable()
 export class QueueTokenService implements ITokenService {

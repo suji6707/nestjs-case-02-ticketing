@@ -3,7 +3,7 @@ import { PrismaService } from 'src/common/services/prisma.service';
 import { Concert } from 'src/ticketing/application/domain/models/concert';
 import { ConcertSchedule } from 'src/ticketing/application/domain/models/concert-schedule';
 import { Seat } from 'src/ticketing/application/domain/models/seat';
-import { IConcertRepository } from 'src/ticketing/application/interfaces/repositories/iconcert.repository';
+import { IConcertRepository } from 'src/ticketing/application/domain/repositories/iconcert.repository';
 
 @Injectable()
 export class ConcertPrismaRepository implements IConcertRepository {
@@ -30,17 +30,5 @@ export class ConcertPrismaRepository implements IConcertRepository {
 			},
 		});
 		return entities.map((entity) => new Seat(entity));
-	}
-
-	async findSeatById(seatId: number): Promise<Seat> {
-		const entity = await this.prisma.seatEntity.findUnique({
-			where: {
-				id: seatId,
-			},
-		});
-		if (!entity) {
-			throw new Error('Seat not found');
-		}
-		return new Seat(entity);
 	}
 }

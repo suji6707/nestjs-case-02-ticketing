@@ -8,7 +8,7 @@ import {
 	CreateTokenParams,
 	ICreatePaymentTokenParams,
 	ITokenService,
-} from '../interfaces/itoken.service';
+} from './interfaces/itoken.service';
 
 @Injectable()
 export class PaymentTokenService implements ITokenService {

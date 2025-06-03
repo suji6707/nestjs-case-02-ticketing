@@ -5,6 +5,16 @@ export enum ReservationStatus {
 	CANCELED = 3,
 }
 
+export interface ReservationProps {
+	id?: optional<number>;
+	userId: number;
+	seatId: number;
+	purchasePrice: number;
+	status: ReservationStatus;
+	paidAt?: optional<Date>;
+	createdAt?: optional<Date>;
+}
+
 export class Reservation {
 	id: optional<number>;
 	userId: number;
@@ -22,15 +32,7 @@ export class Reservation {
 		purchasePrice,
 		paidAt,
 		createdAt,
-	}: {
-		id?: optional<number>;
-		userId: number;
-		seatId: number;
-		status: ReservationStatus;
-		purchasePrice: number;
-		paidAt?: optional<Date>;
-		createdAt?: optional<Date>;
-	}) {
+	}: ReservationProps) {
 		if (id) this.id = id;
 		this.userId = userId;
 		this.seatId = seatId;

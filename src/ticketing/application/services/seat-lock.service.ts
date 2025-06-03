@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { SEAT_LOCK_TTL } from 'src/common/utils/constants';
-import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class SeatLockService {
@@ -17,15 +16,13 @@ export class SeatLockService {
 		return !!result;
 	}
 
-	async lockSeat(seatId: number): Promise<string> {
+	async lockSeat(seatId: number, queueToken: string): Promise<string> {
 		const key = this._getLockKey(seatId);
-		const token = uuidv4();
-
-		await this.redisService.set(key, token, SEAT_LOCK_TTL, true);
-		return token;
+		// set value as queueToken
+		await this.redisService.set(key, queueToken, SEAT_LOCK_TTL, true);
+		return queueToken;
 	}
 
-	// lockValue is uuid and should be get from DB seat_locks table
 	async unlockSeat(seatId: number, lockValue: string): Promise<boolean> {
 		const key = this._getLockKey(seatId);
 		const luaScript = `

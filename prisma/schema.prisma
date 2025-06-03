@@ -93,17 +93,21 @@ model SeatEntity {
   @@map("seats")
 }
 
-model SeatLockEntity {
-  id         Int        @id @default(autoincrement())
-  seatId     Int        @map("seat_id")
-  seat       SeatEntity @relation(fields: [seatId], references: [id])
-  queueToken String     @map("queue_token") // queue token은 레디스에 일정시간 저장됨
-  createdAt  DateTime   @default(now()) @map("created_at")
+/*
+유저별 token을 관리하는 테이블로 변경. 
+UK(userId, purpose)
+*/
+// model SeatLockEntity {
+//   id         Int        @id @default(autoincrement())
+//   seatId     Int        @map("seat_id")
+//   seat       SeatEntity @relation(fields: [seatId], references: [id])
+//   queueToken String     @map("queue_token") // queue token은 레디스에 일정시간 저장됨
+//   createdAt  DateTime   @default(now()) @map("created_at")
 
-  @@unique([seatId])
-  @@unique([queueToken])
-  @@map("seat_locks")
-}
+//   @@unique([seatId])
+//   @@unique([queueToken])
+//   @@map("seat_locks")
+// }
 
 model ReservationEntity {
   id            Int        @id @default(autoincrement())
