@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { AUTH_TOKEN_TTL } from 'src/common/utils/constants';
 import { SignUpResponseDto } from '../controllers/dtos/response.dto';
 import { User } from '../domains/user';
 import { UserRepository } from '../repositories/user.repository';
@@ -7,8 +8,6 @@ import { JwtService } from './jwt.service';
 
 @Injectable()
 export class UserService {
-	private readonly expireIn = '3h';
-
 	constructor(
 		private readonly userRepository: UserRepository,
 		private readonly jwtService: JwtService,
@@ -27,7 +26,7 @@ export class UserService {
 				userId: user.id,
 				email: user.email,
 			},
-			this.expireIn,
+			AUTH_TOKEN_TTL,
 		);
 
 		return { token };
@@ -50,7 +49,7 @@ export class UserService {
 				userId: user.id,
 				email: user.email,
 			},
-			this.expireIn,
+			AUTH_TOKEN_TTL,
 		);
 
 		return { token };

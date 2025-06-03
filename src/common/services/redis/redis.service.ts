@@ -18,19 +18,34 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 		return;
 	}
 
-	set(key: string, value: string, ttl?: number): Promise<string> {
-		return this.client.set(key, value, 'EX', ttl);
+	async set(
+		key: string,
+		value: string,
+		ttl?: number,
+		nx?: boolean,
+	): Promise<string> {
+		const result = await this.client.set(
+			key,
+			value,
+			'EX',
+			ttl,
+			nx ? 'NX' : undefined,
+		);
+		if (result !== 'OK') {
+			throw new Error(`Failed to set key: ${key}`);
+		}
+		return value;
 	}
 
-	get(key: string): Promise<string | null> {
+	async get(key: string): Promise<string | null> {
 		return this.client.get(key);
 	}
 
-	delete(key: string): Promise<number> {
+	async delete(key: string): Promise<number> {
 		return this.client.del(key);
 	}
 
-	eval(script: string, keys: string[], args: string[]): Promise<any> {
+	async eval(script: string, keys: string[], args: string[]): Promise<any> {
 		return this.client.eval(script, keys.length, ...keys, ...args);
 	}
 }
