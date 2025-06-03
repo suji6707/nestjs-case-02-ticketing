@@ -1,9 +1,18 @@
 import { Module } from '@nestjs/common';
+import { PaymentService } from './application/services/payment.service';
 import { PaymentController } from './constrollers/payment.controller';
-import { PaymentService } from './services/payment.service';
+import { PointHistoryPrismaRepository } from './infrastructure/persistence/point-history.repository';
+import { UserPointPrismaRepository } from './infrastructure/persistence/user-point.repository';
 
 @Module({
 	controllers: [PaymentController],
-	providers: [PaymentService],
+	providers: [
+		PaymentService,
+		{ provide: 'IUserPointRepository', useClass: UserPointPrismaRepository },
+		{
+			provide: 'IPointHistoryRepository',
+			useClass: PointHistoryPrismaRepository,
+		},
+	],
 })
 export class PaymentModule {}
