@@ -2,13 +2,26 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsArray, IsNumber, IsString } from 'class-validator';
 
-export class QueueTokenResponseDto {
+export interface ITokenResponseDto {
+	token: string;
+}
+
+export class QueueTokenResponseDto implements ITokenResponseDto {
 	@ApiProperty({
 		example: 'eyJhbGciOiJIUI6I...HDk',
 		description: '대기열 토큰',
 	})
 	@IsString()
-	queueToken: string;
+	token: string;
+}
+
+export class PaymentTokenResponseDto implements ITokenResponseDto {
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '결제 대기 토큰',
+	})
+	@IsString()
+	token: string;
 }
 
 export class ReserveResponseDto {

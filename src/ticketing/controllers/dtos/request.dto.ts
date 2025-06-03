@@ -9,11 +9,11 @@ export class QueueTokenRequestDto {
 	concertId: number;
 }
 
-export class ReserveRequestDto {
-	@ApiProperty({ example: 1, description: '콘서트 ID' })
+export class ReserveSeatRequestDto {
+	@ApiProperty({ example: 1, description: '좌석 ID' })
 	@Type(() => Number)
 	@IsNumber()
-	concertId: number;
+	seatId: number;
 
 	@ApiProperty({
 		example: 'eyJhbGciOiJIUI6I...HDk',

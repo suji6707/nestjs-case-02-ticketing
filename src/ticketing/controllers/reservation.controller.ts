@@ -1,16 +1,16 @@
-import { Controller, Req } from '@nestjs/common';
+import { Controller, Inject, Req } from '@nestjs/common';
 import { Post } from '@nestjs/common';
 import { Body } from '@nestjs/common';
 import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthGuard } from '../../auth/services/auth.guard';
+import { ITokenService } from '../application/interfaces/itoken.service';
 import { ReservationService } from '../application/services/reservation.service';
-import { TokenService } from '../application/services/token.service';
 import {
 	PaymentRequestDto,
 	QueueTokenRequestDto,
-	ReserveRequestDto,
+	ReserveSeatRequestDto,
 } from './dtos/request.dto';
 import {
 	PaymentResponseDto,
@@ -24,7 +24,8 @@ import {
 export class ReservationController {
 	constructor(
 		private readonly reservationService: ReservationService,
-		private readonly tokenService: TokenService,
+		@Inject('QueueTokenService')
+		private readonly tokenService: ITokenService,
 	) {}
 
 	// 대기열 토큰발급 (TTL 1시간)
@@ -39,7 +40,10 @@ export class ReservationController {
 		@Body() body: QueueTokenRequestDto,
 	): Promise<QueueTokenResponseDto> {
 		const userId = req.userId;
-		return this.tokenService.createToken(userId, body.concertId);
+		return this.tokenService.createToken({
+			userId,
+			concertId: body.concertId,
+		});
 	}
 
 	// 예약 요청 -> 대기열 토큰 삭제, 임시 결제 토큰 발급 (TTL 5분)
@@ -48,10 +52,14 @@ export class ReservationController {
 	@ApiOkResponse({ type: ReserveResponseDto, description: '예약 요청 성공' })
 	async reserve(
 		@Req() req: Request,
-		@Body() body: ReserveRequestDto,
+		@Body() body: ReserveSeatRequestDto,
 	): Promise<ReserveResponseDto> {
 		const userId = req.userId;
-		return this.reservationService.reserve(userId, body.concertId);
+		return this.reservationService.reserve(
+			userId,
+			body.seatId,
+			body.queueToken,
+		);
 	}
 
 	// 결제 요청 및 좌석 임시배정, 임시 결제 토큰 삭제

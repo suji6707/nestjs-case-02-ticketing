@@ -1,13 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { RedisService } from 'src/common/services/redis/redis.service';
-import { IConcertRepository } from '../../application/domain/repositories/iconcert.repository';
+import { ITokenService } from '../interfaces/itoken.service';
+import { IConcertRepository } from '../interfaces/repositories/iconcert.repository';
 import { EventSearchService } from './event-search.service';
-import { TokenService } from './token.service';
 
 describe('EventSearchService', () => {
 	let eventSearchService: EventSearchService;
 	let concertRepository: IConcertRepository;
-	let tokenService: TokenService;
+	let tokenService: ITokenService;
 
 	beforeEach(async () => {
 		concertRepository = {
@@ -18,7 +16,7 @@ describe('EventSearchService', () => {
 		tokenService = {
 			createToken: jest.fn(),
 			verifyToken: jest.fn(),
-		} as unknown as TokenService;
+		} as unknown as ITokenService;
 
 		eventSearchService = new EventSearchService(
 			concertRepository,

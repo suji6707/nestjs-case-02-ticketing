@@ -4,20 +4,20 @@ import {
 	ConcertSeatResponseDto,
 } from '../../controllers/dtos/response.dto';
 import { Concert } from '../domain/models/concert';
-import { TokenPurpose } from '../domain/models/token';
-import { IConcertRepository } from '../domain/repositories/iconcert.repository';
-import { TokenService } from './token.service';
+import { ITokenService } from '../interfaces/itoken.service';
+import { IConcertRepository } from '../interfaces/repositories/iconcert.repository';
 
 @Injectable()
 export class EventSearchService {
 	constructor(
 		@Inject('IConcertRepository')
 		private readonly concertRepository: IConcertRepository,
-		private readonly tokenService: TokenService,
+		@Inject('QueueTokenService')
+		private readonly tokenService: ITokenService,
 	) {}
 
 	async getConcerts(): Promise<Concert[]> {
-		return this.concertRepository.findAllConcerts();
+		return this.concertRepository.findConcerts();
 	}
 
 	async getSchedules(
@@ -28,7 +28,6 @@ export class EventSearchService {
 		const isValidToken = await this.tokenService.verifyToken(
 			userId,
 			queueToken,
-			TokenPurpose.QUEUE_ENTRY,
 		);
 		if (!isValidToken) {
 			throw new BadRequestException('Invalid token');
@@ -54,7 +53,6 @@ export class EventSearchService {
 		const isValidToken = await this.tokenService.verifyToken(
 			userId,
 			queueToken,
-			TokenPurpose.QUEUE_ENTRY,
 		);
 		if (!isValidToken) {
 			throw new BadRequestException('Invalid token');
