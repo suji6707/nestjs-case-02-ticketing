@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
-import { AuthGuard } from '../../auth/services/auth.guard';
+import { AuthGuard } from '../../auth/application/services/auth.guard';
 import { EventSearchService } from '../application/services/event-search.service';
 import {
 	ConcertScheduleRequestDto,

@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { JwtService } from 'src/auth/services/jwt.service';
+import { JwtService } from 'src/auth/application/services/jwt.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { PAYMENT_TOKEN_TTL } from 'src/common/utils/constants';
 import { ITokenResponseDto } from 'src/ticketing/controllers/dtos/response.dto';

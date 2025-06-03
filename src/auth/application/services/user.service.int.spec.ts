@@ -1,7 +1,7 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { CommonModule } from 'src/common/common.module';
-import { AuthModule } from '../auth.module';
+import { AuthModule } from '../../auth.module';
 import { UserService } from './user.service';
 
 describe('UserService Integration Test', () => {

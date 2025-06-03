@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { AUTH_TOKEN_TTL } from 'src/common/utils/constants';
-import { SignUpResponseDto } from '../controllers/dtos/response.dto';
-import { User } from '../domains/user';
-import { UserRepository } from '../repositories/user.repository';
+import { SignUpResponseDto } from '../../controllers/dtos/response.dto';
+import { User } from '../domain/models/user';
+import { IUserRepository } from '../domain/repositories/iuser.repository';
 import { JwtService } from './jwt.service';
 
 @Injectable()
 export class UserService {
 	constructor(
-		private readonly userRepository: UserRepository,
+		@Inject('IUserRepository')
+		private readonly userRepository: IUserRepository,
 		private readonly jwtService: JwtService,
 	) {}
 
