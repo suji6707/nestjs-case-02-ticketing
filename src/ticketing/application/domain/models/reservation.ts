@@ -10,7 +10,7 @@ export interface ReservationProps {
 	userId: number;
 	seatId: number;
 	purchasePrice: number;
-	status: ReservationStatus;
+	status?: ReservationStatus;
 	paidAt?: optional<Date>;
 	createdAt?: optional<Date>;
 }
@@ -36,9 +36,14 @@ export class Reservation {
 		if (id) this.id = id;
 		this.userId = userId;
 		this.seatId = seatId;
-		this.status = status;
+		this.status = status ?? ReservationStatus.PENDING;
 		this.purchasePrice = purchasePrice;
 		this.paidAt = paidAt; // nullable
 		this.createdAt = createdAt ?? new Date();
+	}
+
+	setConfirmed(): void {
+		this.status = ReservationStatus.CONFIRMED;
+		this.paidAt = new Date();
 	}
 }

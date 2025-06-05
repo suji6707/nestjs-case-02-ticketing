@@ -1,6 +1,6 @@
-import { Seat, SeatStatus } from '../models/seat';
+import { Seat } from '../models/seat';
 
 export interface ISeatRepository {
-	findSeatById(seatId: number): Promise<Seat>;
-	updateStatus(seatId: number, status: SeatStatus): Promise<Seat>;
+	findOne(seatId: number): Promise<Seat>;
+	update(seat: Seat): Promise<Seat>;
 }

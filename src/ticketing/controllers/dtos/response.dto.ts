@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsArray, IsNumber, IsString } from 'class-validator';
+import { IsDate, IsNumber, IsString } from 'class-validator';
 
 export interface ITokenResponseDto {
 	token: string;
@@ -37,12 +37,39 @@ export class ReserveResponseDto {
 	paymentToken: string;
 }
 
+export class ReservationItem {
+	@ApiProperty({ example: 1, description: '예약 ID' })
+	@IsNumber()
+	id: number;
+
+	@ApiProperty({ example: 1, description: '좌석 ID' })
+	@IsNumber()
+	seatId: number;
+
+	@ApiProperty({ example: 10000, description: '결제 금액' })
+	@IsNumber()
+	purchasePrice: number;
+
+	@ApiProperty({
+		example: '2025-06-01T19:00:00.000Z',
+		description: '결제 시간',
+	})
+	@IsDate()
+	paidAt: Date;
+}
+
 export class PaymentResponseDto {
-	@ApiProperty({ example: [1], description: '결제 완료된 예약 ID 리스트' })
-	@IsArray()
-	@IsNumber({}, { each: true })
-	@Type(() => Number)
-	reservationIds: number[];
+	@ApiProperty({
+		type: ReservationItem,
+		example: {
+			id: 10,
+			seatId: 55,
+			purchasePrice: 10000,
+			paidAt: new Date(),
+		},
+		description: '결제 완료된 예약 정보',
+	})
+	reservation: ReservationItem;
 }
 
 export class ConcertScheduleItem {

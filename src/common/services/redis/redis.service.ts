@@ -41,8 +41,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 		return this.client.get(key);
 	}
 
-	async delete(key: string): Promise<number> {
-		return this.client.del(key);
+	async delete(key: string): Promise<boolean> {
+		await this.client.del(key);
+		return true;
 	}
 
 	async eval(script: string, keys: string[], args: string[]): Promise<any> {

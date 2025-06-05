@@ -67,4 +67,14 @@ export class PaymentTokenService implements ITokenService {
 
 		return true;
 	}
+
+	async deleteToken(token: string): Promise<boolean> {
+		const cacheKey = this._getCacheKey(token);
+		const success = await this.redisService.delete(cacheKey);
+		if (!success) {
+			this.logger.error(`Failed to delete token: ${token}`);
+			return false;
+		}
+		return true;
+	}
 }

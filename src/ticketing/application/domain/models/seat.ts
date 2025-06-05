@@ -34,4 +34,12 @@ export class Seat {
 		this.price = price;
 		this.status = status;
 	}
+
+	setReserved(): void {
+		this.status = SeatStatus.RESERVED;
+	}
+
+	setSold(): void {
+		this.status = SeatStatus.SOLD;
+	}
 }

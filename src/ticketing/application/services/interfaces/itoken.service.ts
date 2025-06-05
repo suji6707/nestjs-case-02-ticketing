@@ -17,4 +17,5 @@ export type CreateTokenParams =
 export interface ITokenService {
 	createToken(params: CreateTokenParams): Promise<ITokenResponseDto>;
 	verifyToken(userId: number, token: string): Promise<boolean>;
+	deleteToken(key: string): Promise<boolean>;
 }

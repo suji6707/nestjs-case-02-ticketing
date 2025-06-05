@@ -14,5 +14,6 @@ import { UserPointPrismaRepository } from './infrastructure/persistence/user-poi
 			useClass: PointHistoryPrismaRepository,
 		},
 	],
+	exports: [PaymentService],
 })
 export class PaymentModule {}

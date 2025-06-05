@@ -55,7 +55,7 @@ export class ReservationController {
 		@Body() body: ReserveSeatRequestDto,
 	): Promise<ReserveResponseDto> {
 		const userId = req.userId;
-		return this.reservationService.reserve(
+		return this.reservationService.temporaryReserve(
 			userId,
 			body.seatId,
 			body.queueToken,
@@ -71,7 +71,11 @@ export class ReservationController {
 		@Body() body: PaymentRequestDto,
 	): Promise<PaymentResponseDto> {
 		const userId = req.userId;
-		return this.reservationService.payment(userId, body.reservationIds);
+		return this.reservationService.confirmReservation(
+			userId,
+			body.reservationId,
+			body.paymentToken,
+		);
 	}
 
 	// 예약 현황 조회

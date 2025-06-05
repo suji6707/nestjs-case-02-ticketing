@@ -24,11 +24,10 @@ export class ReserveSeatRequestDto {
 }
 
 export class PaymentRequestDto {
-	@ApiProperty({ example: [1], description: '예약 ID 리스트' })
-	@IsArray()
-	@IsNumber({}, { each: true })
+	@ApiProperty({ example: 1, description: '예약 ID' })
 	@Type(() => Number)
-	reservationIds: number[];
+	@IsNumber()
+	reservationId: number;
 
 	@ApiProperty({
 		example: 'eyJhbGciOiJIUI6I...HDk',

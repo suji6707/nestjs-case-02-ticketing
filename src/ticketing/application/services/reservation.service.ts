@@ -1,11 +1,13 @@
-import { Transactional } from '@nestjs-cls/transactional';
+import { TransactionHost, Transactional } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Inject, Injectable } from '@nestjs/common';
+import { PaymentService } from 'src/payment/application/services/payment.service';
 import {
 	PaymentResponseDto,
 	ReserveResponseDto,
 } from '../../controllers/dtos/response.dto';
-import { Reservation, ReservationStatus } from '../domain/models/reservation';
-import { SeatStatus } from '../domain/models/seat';
+import { Reservation } from '../domain/models/reservation';
+import { Seat } from '../domain/models/seat';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
@@ -23,9 +25,11 @@ export class ReservationService {
 		@Inject('PaymentTokenService')
 		private readonly paymentTokenService: ITokenService,
 		private readonly seatLockService: SeatLockService,
+		private readonly paymentService: PaymentService,
+		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
 	) {}
 
-	async reserve(
+	async temporaryReserve(
 		userId: number,
 		seatId: number,
 		queueToken: string,
@@ -51,45 +55,79 @@ export class ReservationService {
 			seatId,
 		});
 
-		const reservation = await this._reserveTransaction(userId, seatId);
+		// 기존 대기열 토큰은 만료 처리
+		await this.queueTokenService.deleteToken(queueToken);
+
+		// domain logic
+		const seat = await this.seatRepository.findOne(seatId);
+		seat.setReserved();
+		const reservation = new Reservation({
+			userId,
+			seatId: seat.id,
+			purchasePrice: seat.price,
+		});
+
+		// transaction
+		const newReservation = await this._reserveTransaction(seat, reservation);
 
 		return {
-			reservationId: reservation.id,
+			reservationId: newReservation.id,
 			paymentToken,
 		};
 	}
 
 	@Transactional()
 	async _reserveTransaction(
-		userId: number,
-		seatId: number,
+		seat: Seat,
+		reservation: Reservation,
 	): Promise<Reservation> {
-		const seat = await this.seatRepository.updateStatus(
-			seatId,
-			SeatStatus.RESERVED,
-		);
-		const reservation = await this.reservationRepository.create({
-			userId,
-			seatId,
-			status: ReservationStatus.PENDING,
-			purchasePrice: seat.price,
-		});
-		return reservation;
+		await this.seatRepository.update(seat);
+		const newReservation = await this.reservationRepository.create(reservation);
+		return newReservation;
 	}
 
-	/**
-	 * - reservationId로 금액 조회
-	 * - paymentService.charge(userId, amount);
-	 * - 좌석 임시배정 및 대기열 토큰 만료
-	 */
-	async payment(
+	async confirmReservation(
 		userId: number,
-		reservationIds: number[],
+		reservationId: number,
+		paymentToken: string,
 	): Promise<PaymentResponseDto> {
-		// update db seat sold.
-		// update db reservation paidAt
+		// verify
+		const isValidToken = await this.paymentTokenService.verifyToken(
+			userId,
+			paymentToken,
+		);
+		if (!isValidToken) {
+			throw new Error('Invalid payment token');
+		}
+
+		// get reservation info -> price
+		const reservation = await this.reservationRepository.findOne(reservationId);
+		if (!reservation) {
+			throw new Error('NOT_FOUND_RESERVATION');
+		}
+
+		// 결제 모듈 호출
+		await this.paymentService.use(userId, reservation.purchasePrice);
+
+		// 좌석 최종 배정
+		const seat = await this.seatRepository.findOne(reservation.seatId);
+		seat.setSold();
+		reservation.setConfirmed();
+
+		const updatedReservation = await this.txHost.withTransaction(async () => {
+			await this.seatRepository.update(seat);
+			return await this.reservationRepository.update(reservation);
+		});
+
+		await this.paymentTokenService.deleteToken(paymentToken);
+
 		return {
-			reservationIds,
+			reservation: {
+				id: updatedReservation.id,
+				seatId: updatedReservation.seatId,
+				purchasePrice: updatedReservation.purchasePrice,
+				paidAt: updatedReservation.paidAt,
+			},
 		};
 	}
 }
