@@ -1,18 +1,18 @@
 import { Injectable } from '@nestjs/common';
 import { Job, JobsOptions, Queue } from 'bullmq';
 import IORedis from 'ioredis';
+import { RedisService } from 'src/common/services/redis/redis.service';
 
 @Injectable()
 export class QueueProducer {
 	private readonly connection: IORedis;
-	private readonly queues: Map<string, Queue>;
+	private readonly queues = new Map<string, Queue>();
 
-	constructor() {
+	constructor(private readonly redisService: RedisService) {
 		this.connection = new IORedis({
 			host: process.env.REDIS_HOST,
 			port: Number(process.env.REDIS_PORT),
 		});
-		this.queues = new Map<string, Queue>();
 	}
 
 	private getOrCreateQueue(name: string): Queue {
@@ -24,7 +24,7 @@ export class QueueProducer {
 		});
 		this.queues.set(name, queue);
 
-		// TODO: Redis set으로 등록된 큐 공유
+		this.redisService.setAdd('queues-shared', [name]);
 
 		return queue;
 	}
