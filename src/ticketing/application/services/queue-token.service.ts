@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from 'src/auth/application/services/jwt.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { QUEUE_TOKEN_TTL } from 'src/common/utils/constants';
+import { getQueueTokenKey } from 'src/common/utils/redis-keys';
 import { QueueProducer } from 'src/queue/services/queue.producer.service';
 import { QueueTokenResponseDto } from '../../controllers/dtos/response.dto';
 import { TokenPurpose, TokenStatus } from '../domain/models/token';
@@ -20,10 +21,6 @@ export class QueueTokenService implements ITokenService {
 		private readonly QueueProducer: QueueProducer,
 	) {}
 
-	private _getCacheKey(token: string): string {
-		return `token:queue:${token}`;
-	}
-
 	/**
 	 * 순번 진입시 해당 토큰 status = PROCESSING 으로 변경
 	 * seat lock에서 해당 토큰을 value로 set
@@ -39,7 +36,7 @@ export class QueueTokenService implements ITokenService {
 		};
 
 		const token = await this.jwtService.signJwtAsync(payload, QUEUE_TOKEN_TTL);
-		const cacheKey = this._getCacheKey(token);
+		const cacheKey = getQueueTokenKey(token);
 		await this.redisService.set(
 			cacheKey,
 			TokenStatus.WAITING, // 대기열 대기
@@ -56,7 +53,7 @@ export class QueueTokenService implements ITokenService {
 
 	async verifyToken(userId: number, token: string): Promise<boolean> {
 		// check expired
-		const cacheKey = this._getCacheKey(token);
+		const cacheKey = getQueueTokenKey(token);
 		const tokenStatus = await this.redisService.get(cacheKey);
 		if (!tokenStatus) {
 			return false;
@@ -76,7 +73,7 @@ export class QueueTokenService implements ITokenService {
 	}
 
 	async deleteToken(token: string): Promise<boolean> {
-		const cacheKey = this._getCacheKey(token);
+		const cacheKey = getQueueTokenKey(token);
 		const success = await this.redisService.delete(cacheKey);
 		if (!success) {
 			this.logger.error(`Failed to delete token: ${token}`);

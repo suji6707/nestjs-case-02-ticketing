@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from 'src/auth/application/services/jwt.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { PAYMENT_TOKEN_TTL } from 'src/common/utils/constants';
+import { getPaymentTokenKey } from 'src/common/utils/redis-keys';
 import { ITokenResponseDto } from 'src/ticketing/controllers/dtos/response.dto';
 import { TokenPurpose, TokenStatus } from '../domain/models/token';
 import {
@@ -19,10 +20,6 @@ export class PaymentTokenService implements ITokenService {
 		private readonly redisService: RedisService,
 	) {}
 
-	private _getCacheKey(token: string): string {
-		return `token:payment:${token}`;
-	}
-
 	async createToken(params: CreateTokenParams): Promise<ITokenResponseDto> {
 		const paymentParams = params as ICreatePaymentTokenParams;
 		const { userId, seatId } = paymentParams;
@@ -37,7 +34,7 @@ export class PaymentTokenService implements ITokenService {
 			payload,
 			PAYMENT_TOKEN_TTL,
 		);
-		const redisKey = this._getCacheKey(token);
+		const redisKey = getPaymentTokenKey(token);
 		await this.redisService.set(
 			redisKey,
 			TokenStatus.WAITING, // 결제 대기
@@ -52,7 +49,7 @@ export class PaymentTokenService implements ITokenService {
 
 	async verifyToken(userId: number, token: string): Promise<boolean> {
 		// check expired
-		const cacheKey = this._getCacheKey(token);
+		const cacheKey = getPaymentTokenKey(token);
 		const tokenStatus = await this.redisService.get(cacheKey);
 		if (!tokenStatus) {
 			return false;
@@ -72,7 +69,7 @@ export class PaymentTokenService implements ITokenService {
 	}
 
 	async deleteToken(token: string): Promise<boolean> {
-		const cacheKey = this._getCacheKey(token);
+		const cacheKey = getPaymentTokenKey(token);
 		const success = await this.redisService.delete(cacheKey);
 		if (!success) {
 			this.logger.error(`Failed to delete token: ${token}`);
