@@ -1,8 +1,8 @@
-import { getDatasource } from './util';
+// import { getDatasource } from './util';
 
-const down = async () => {
-	await global.mysql.stop();
-	await (await getDatasource()).destroy();
-};
+// const down = async () => {
+// 	await global.mysql.stop();
+// 	await (await getDatasource()).destroy();
+// };
 
-export default down;
+// export default down;

@@ -1,9 +1,9 @@
 import { Body, Controller, Post } from '@nestjs/common';
-import { UserService } from '../services/user.service';
+import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
+import { UserService } from '../application/services/user.service';
 import { SignUpRequestDto } from './dtos/request.dto';
 import { LoginRequestDto } from './dtos/request.dto';
 import { LoginResponseDto, SignUpResponseDto } from './dtos/response.dto';
-import { ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 
 @Controller('/auth')
 export class AuthController {
