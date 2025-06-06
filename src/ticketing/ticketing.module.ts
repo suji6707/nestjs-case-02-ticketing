@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { QueueModule } from 'src/queue/queue.module';
 import { PaymentModule } from '../payment/payment.module';
 import { EventSearchService } from './application/services/event-search.service';
 import { PaymentTokenService } from './application/services/payment-token.service';
@@ -12,7 +13,7 @@ import { ReservationPrismaRepository } from './infrastructure/persistence/reserv
 import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.repository';
 
 @Module({
-	imports: [PaymentModule],
+	imports: [PaymentModule, QueueModule],
 	providers: [
 		EventSearchService,
 		ReservationService,
