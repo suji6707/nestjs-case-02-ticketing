@@ -1,15 +1,16 @@
 import { Injectable, Logger, OnApplicationShutdown } from '@nestjs/common';
-import { Job, Queue, Worker } from 'bullmq';
+import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { RESERVATION_SESSION_TTL } from 'src/common/utils/constants';
+import { getQueueTokenKey } from 'src/common/utils/redis-keys';
 import { TokenStatus } from 'src/ticketing/application/domain/models/token';
 
 @Injectable()
 export class QueueConsumer implements OnApplicationShutdown {
 	private readonly logger = new Logger(QueueConsumer.name);
 	private readonly connection: IORedis;
-	private readonly queues = new Map<string, Queue>();
+	private readonly queues: Set<string> = new Set();
 	private readonly activeWorkers = new Map<string, Worker>();
 
 	constructor(private readonly redisService: RedisService) {
@@ -17,27 +18,28 @@ export class QueueConsumer implements OnApplicationShutdown {
 			host: process.env.REDIS_HOST,
 			port: Number(process.env.REDIS_PORT),
 		});
-
-		this.redisService.getSet('queues-shared').then((queues) => {
-			for (const queue of queues) {
-				this.getOrCreateQueue(queue);
-			}
-		});
 	}
 
-	private getOrCreateQueue(name: string): Queue {
-		if (this.queues.has(name)) {
-			return this.queues.get(name);
+	async loadQueuesFromRedis(): Promise<void> {
+		const queues = await this.redisService.getSet('queues-shared');
+		for (const queue of queues) {
+			this.queues.add(queue);
 		}
-		const queue = new Queue(name, {
-			connection: this.connection,
-		});
-		this.queues.set(name, queue);
-		return queue;
 	}
 
-	private _getQueueTokenCacheKey(token: string): string {
-		return `token:queue:${token}`;
+	async initializeAndStartWorkers(): Promise<void> {
+		for (const queueName of this.queues) {
+			// for every queues, create worker and start it
+			const worker = new Worker(
+				queueName,
+				this.process.bind(this), // Worker의 process 메서드 내에서 this가 QueueConsumer 인스턴스를 참조하도록 함
+				{
+					connection: this.connection,
+					concurrency: 5, // 동시 처리 수
+				},
+			);
+			this.activeWorkers.set(queueName, worker);
+		}
 	}
 
 	async process(job: Job<{ token: string }>): Promise<boolean> {
@@ -45,7 +47,7 @@ export class QueueConsumer implements OnApplicationShutdown {
 		this.logger.log(
 			`Processing job ${job.id} from queue ${job.queueName} with token: ${token}`,
 		);
-		const cacheKey = this._getQueueTokenCacheKey(token);
+		const cacheKey = getQueueTokenKey(token);
 		await this.redisService.set(
 			cacheKey,
 			TokenStatus.PROCESSING,
