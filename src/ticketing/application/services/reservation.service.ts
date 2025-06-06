@@ -55,9 +55,6 @@ export class ReservationService {
 			seatId,
 		});
 
-		// 기존 대기열 토큰은 만료 처리
-		await this.queueTokenService.deleteToken(queueToken);
-
 		// domain logic
 		const seat = await this.seatRepository.findOne(seatId);
 		seat.setReserved();

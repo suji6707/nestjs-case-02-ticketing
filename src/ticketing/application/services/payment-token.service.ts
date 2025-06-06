@@ -30,7 +30,6 @@ export class PaymentTokenService implements ITokenService {
 		const payload = {
 			userId,
 			seatId,
-			status: TokenStatus.WAITING, // 결제 대기
 			purpose: TokenPurpose.PAYMENT,
 		};
 
@@ -39,7 +38,11 @@ export class PaymentTokenService implements ITokenService {
 			PAYMENT_TOKEN_TTL,
 		);
 		const redisKey = this._getCacheKey(token);
-		await this.redisService.set(redisKey, 'true', PAYMENT_TOKEN_TTL);
+		await this.redisService.set(
+			redisKey,
+			TokenStatus.WAITING, // 결제 대기
+			PAYMENT_TOKEN_TTL,
+		);
 		this.logger.log(
 			`Payment token created and stored in Redis for userId: ${userId}, seatId: ${seatId}`,
 		);
@@ -50,17 +53,17 @@ export class PaymentTokenService implements ITokenService {
 	async verifyToken(userId: number, token: string): Promise<boolean> {
 		// check expired
 		const cacheKey = this._getCacheKey(token);
-		const tokenValue = await this.redisService.get(cacheKey);
-		if (!tokenValue) {
+		const tokenStatus = await this.redisService.get(cacheKey);
+		if (!tokenStatus) {
 			return false;
 		}
 
-		const payload = await this.jwtService.verifyJwtAsync(tokenValue);
+		const payload = await this.jwtService.verifyJwtAsync(token);
 
 		if (
 			payload.userId !== userId ||
 			payload.purpose !== TokenPurpose.PAYMENT ||
-			payload.status !== TokenStatus.WAITING // 결제 대기
+			tokenStatus !== TokenStatus.WAITING // 결제 대기
 		) {
 			return false;
 		}

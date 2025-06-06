@@ -148,9 +148,9 @@ describe('ReservationService', () => {
 		jest.spyOn(seatRepository, 'findOne').mockResolvedValue(mockSeat);
 
 		// domain logic
-		mockSeat.status = SeatStatus.SOLD;
-		mockReservation.status = ReservationStatus.CONFIRMED;
-		mockReservation.paidAt = new Date();
+		// mockSeat.status = SeatStatus.SOLD;
+		// mockReservation.status = ReservationStatus.CONFIRMED;
+		// mockReservation.paidAt = new Date();
 
 		jest
 			.spyOn(seatRepository, 'update')
