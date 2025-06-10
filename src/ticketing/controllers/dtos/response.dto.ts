@@ -1,70 +1,122 @@
-import { ApiProperty } from "@nestjs/swagger";
-import { Type } from "class-transformer";
-import { IsArray, IsNumber, IsString } from "class-validator";
+import { ApiProperty } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
+import { IsDate, IsNumber, IsString } from 'class-validator';
 
-export class QueueTokenResponseDto {
-	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: '대기열 토큰' })
+export interface ITokenResponseDto {
+	token: string;
+}
+
+export class QueueTokenResponseDto implements ITokenResponseDto {
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '대기열 토큰',
+	})
 	@IsString()
-	queueToken: string;
+	token: string;
+}
+
+export class PaymentTokenResponseDto implements ITokenResponseDto {
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '결제 대기 토큰',
+	})
+	@IsString()
+	token: string;
 }
 
 export class ReserveResponseDto {
-	@ApiProperty({ example: [1], description: '예약 ID 리스트' })
-	@IsArray()
-	@IsNumber({}, { each: true })
-	@Type(() => Number)
-	reservationIds: number[];
+	@ApiProperty({ example: 1, description: '예약 ID' })
+	@IsNumber()
+	reservationId: number;
 
-	@ApiProperty({ example: 'eyJhbGciOiJIUI6I...HDk', description: '결제 대기 토큰' })
+	@ApiProperty({
+		example: 'eyJhbGciOiJIUI6I...HDk',
+		description: '결제 대기 토큰',
+	})
 	@IsString()
 	paymentToken: string;
 }
 
-export class PaymentResponseDto {
-	@ApiProperty({ example: [1], description: '결제 완료된 예약 ID 리스트' })
-	@IsArray()
-	@IsNumber({}, { each: true })
-	@Type(() => Number)
-	reservationIds: number[];
+export class ReservationItem {
+	@ApiProperty({ example: 1, description: '예약 ID' })
+	@IsNumber()
+	id: number;
+
+	@ApiProperty({ example: 1, description: '좌석 ID' })
+	@IsNumber()
+	seatId: number;
+
+	@ApiProperty({ example: 10000, description: '결제 금액' })
+	@IsNumber()
+	purchasePrice: number;
+
+	@ApiProperty({
+		example: '2025-06-01T19:00:00.000Z',
+		description: '결제 시간',
+	})
+	@IsDate()
+	paidAt: Date;
 }
 
+export class PaymentResponseDto {
+	@ApiProperty({
+		type: ReservationItem,
+		example: {
+			id: 10,
+			seatId: 55,
+			purchasePrice: 10000,
+			paidAt: new Date(),
+		},
+		description: '결제 완료된 예약 정보',
+	})
+	reservation: ReservationItem;
+}
 
 export class ConcertScheduleItem {
 	@ApiProperty({ example: 1, description: '스케줄 ID' })
 	id: number;
-  
-	@ApiProperty({ example: 3, description: '콘서트 ID' })
-	concertId: number;
 
 	@ApiProperty({ example: 10000, description: '기본가격' })
 	basePrice: number;
-  
-	@ApiProperty({ example: '2025-06-01T19:00:00.000Z', description: '공연 시작 시간', type: String })
+
+	@ApiProperty({
+		example: '2025-06-01T19:00:00.000Z',
+		description: '공연 시작 시간',
+		type: String,
+	})
 	startTime: Date;
-  
-	@ApiProperty({ example: '2025-06-01T21:00:00.000Z', description: '공연 종료 시간', type: String })
+
+	@ApiProperty({
+		example: '2025-06-01T21:00:00.000Z',
+		description: '공연 종료 시간',
+		type: String,
+	})
 	endTime: Date;
+
+	@ApiProperty({ example: false, description: '예약 가능 여부' })
+	isSoldOut: boolean;
 }
+
 export class ConcertSchduleResponseDto {
 	@ApiProperty({
-	  type: [ConcertScheduleItem],
-	  description: '예약 가능한 콘서트 스케줄 리스트',
-	  example: [
-		{
-		  id: 1,
-		  concertId: 3,
-		  basePrice: 10000,
-		  startTime: new Date('2025-06-01T19:00:00.000Z'),
-		  endTime: new Date('2025-06-01T21:00:00.000Z'),
-		},
-		{
-		  id: 2,
-		  concertId: 3,
-		  basePrice: 10000,
-		  startTime: new Date('2025-06-02T19:00:00.000Z'),
-		  endTime: new Date('2025-06-02T21:00:00.000Z'),
-		},
-	  ],
+		type: [ConcertScheduleItem],
+		description: '예약 가능한 콘서트 스케줄 리스트',
+		example: [
+			{
+				id: 1,
+				basePrice: 10000,
+				startTime: new Date('2025-06-01T19:00:00.000Z'),
+				endTime: new Date('2025-06-01T21:00:00.000Z'),
+				isSoldOut: false,
+			},
+			{
+				id: 2,
+				basePrice: 10000,
+				startTime: new Date('2025-06-02T19:00:00.000Z'),
+				endTime: new Date('2025-06-02T21:00:00.000Z'),
+				isSoldOut: false,
+			},
+		],
 	})
 	schedules: ConcertScheduleItem[];
 }
@@ -77,7 +129,7 @@ export class ConcertSeatItem {
 	number: number;
 
 	@ApiProperty({ example: 'A', description: '좌석 등급' })
-	class: string;
+	className: string;
 
 	@ApiProperty({ example: 10000, description: '좌석 가격' })
 	price: number;
@@ -94,14 +146,14 @@ export class ConcertSeatResponseDto {
 			{
 				id: 1,
 				number: 1,
-				class: 'A',
+				className: 'A',
 				price: 10000,
 				status: 0,
 			},
 			{
 				id: 2,
 				number: 2,
-				class: 'B',
+				className: 'B',
 				price: 20000,
 				status: 0,
 			},
@@ -109,4 +161,3 @@ export class ConcertSeatResponseDto {
 	})
 	seats: ConcertSeatItem[];
 }
-	
