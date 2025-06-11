@@ -14,7 +14,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 	}
 
 	onModuleDestroy(): Promise<void> {
-		this.client.quit();
+		if (this.client) this.client.quit();
 		return;
 	}
 
