@@ -3,7 +3,7 @@ import { JwtService } from 'src/auth/application/services/jwt.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { QUEUE_TOKEN_TTL } from 'src/common/utils/constants';
 import { getQueueTokenKey } from 'src/common/utils/redis-keys';
-import { QueueProducer } from 'src/queue/services/queue.producer.service';
+import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
 import { QueueTokenResponseDto } from '../../controllers/dtos/response.dto';
 import { TokenPurpose, TokenStatus } from '../domain/models/token';
 import {

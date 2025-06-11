@@ -11,6 +11,7 @@ import { ReservationController } from './controllers/reservation.controller';
 import { ConcertPrismaRepository } from './infrastructure/persistence/concert.prisma.repository';
 import { ReservationPrismaRepository } from './infrastructure/persistence/reservation.prisma.repository';
 import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.repository';
+import { QueueProducer } from './infrastructure/external/queue-producer.service';
 
 @Module({
 	imports: [PaymentModule, QueueModule],
@@ -26,6 +27,7 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 			provide: 'IReservationRepository',
 			useClass: ReservationPrismaRepository,
 		},
+		QueueProducer,
 	],
 	controllers: [EventSearchController, ReservationController],
 })

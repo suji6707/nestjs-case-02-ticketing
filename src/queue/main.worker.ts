@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
-import { QueueConsumer } from './services/queue.consumer.service';
+import { QueueConsumer } from './services/queue-consumer.service';
 
 async function bootstrap(): Promise<void> {
 	const logger = new Logger('QueueWorker');
