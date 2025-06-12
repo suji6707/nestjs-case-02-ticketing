@@ -8,6 +8,7 @@ import { RedisService } from 'src/common/services/redis/redis.service';
 export class QueueProducer implements OnModuleDestroy {
 	private connection: IORedis;
 	private readonly queues = new Map<string, Queue>();
+	private _isManagedExternally = false;
 
 	constructor(
 		private readonly redisService: RedisService,
@@ -15,6 +16,7 @@ export class QueueProducer implements OnModuleDestroy {
 	) {
 		if (connection) {
 			this.connection = connection;
+			this._isManagedExternally = true;
 		} else {
 			this.connection = new IORedis({
 				host: process.env.REDIS_HOST,
@@ -29,10 +31,14 @@ export class QueueProducer implements OnModuleDestroy {
 		}
 		this.queues.clear();
 
-		// 에러 출력
-		await this.connection.quit().catch((err) => {
-			console.error('Failed to quit Redis connection', err);
-		});
+		console.log('redis connection status 1:', this.connection.status);
+		console.log('is managed externally 1:', this._isManagedExternally);
+
+		if (this._isManagedExternally && this.connection.status !== 'end') {
+			await this.connection.quit().catch((err) => {
+				console.error('QueueProducer OnDestroy Error', err);
+			});
+		}
 
 		return;
 	}

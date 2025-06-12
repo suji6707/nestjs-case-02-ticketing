@@ -4,12 +4,16 @@ import { Redis } from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
 	private client: Redis;
+	private _isManagedExternally = false;
 
 	constructor(client?: Redis) {
-		if (client) this.client = client;
+		if (client) {
+			this.client = client;
+			this._isManagedExternally = true;
+		}
 	}
 
-	onModuleInit(): Promise<void> {
+	onModuleInit(): void {
 		if (!this.client)
 			this.client = new Redis({
 				host: process.env.REDIS_HOST,
@@ -18,8 +22,16 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 		return;
 	}
 
-	onModuleDestroy(): Promise<void> {
-		if (this.client) this.client.quit();
+	async onModuleDestroy(): Promise<void> {
+		console.log('is managed externally 2:', this._isManagedExternally);
+		console.log('redis connection status 2:', this.client.status);
+
+		if (this.client.status !== 'end') {
+			await this.client.quit().catch((err) => {
+				console.error('RedisService OnDestroy Error', err);
+			});
+		}
+
 		return;
 	}
 
@@ -74,5 +86,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
 	async getSet(key: string): Promise<string[]> {
 		return this.client.smembers(key);
+	}
+
+	async getTtl(key: string): Promise<number> {
+		return this.client.ttl(key);
 	}
 }
