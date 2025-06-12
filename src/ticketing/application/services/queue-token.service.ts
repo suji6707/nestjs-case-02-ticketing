@@ -18,7 +18,7 @@ export class QueueTokenService implements ITokenService {
 	constructor(
 		private readonly redisService: RedisService,
 		private readonly jwtService: JwtService,
-		private readonly QueueProducer: QueueProducer,
+		private readonly queueProducer: QueueProducer,
 	) {}
 
 	/**
@@ -46,10 +46,12 @@ export class QueueTokenService implements ITokenService {
 			`Queue token created and stored in Redis for userId: ${userId}, concertId: ${concertId}`,
 		);
 
-		await this.QueueProducer.addJob(`concert:${concertId}:queue`, { token });
+		await this.queueProducer.addJob(`concert-${concertId}-queue`, { token });
 
 		return { token };
 	}
+
+	// TODO: 대기 순번 확인
 
 	async verifyToken(userId: number, token: string): Promise<boolean> {
 		// check expired
