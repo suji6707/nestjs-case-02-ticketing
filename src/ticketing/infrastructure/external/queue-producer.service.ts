@@ -1,18 +1,40 @@
 import { Injectable } from '@nestjs/common';
+import { OnModuleDestroy } from '@nestjs/common';
 import { Job, JobsOptions, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 
 @Injectable()
-export class QueueProducer {
-	private readonly connection: IORedis;
+export class QueueProducer implements OnModuleDestroy {
+	private connection: IORedis;
 	private readonly queues = new Map<string, Queue>();
 
-	constructor(private readonly redisService: RedisService) {
-		this.connection = new IORedis({
-			host: process.env.REDIS_HOST,
-			port: Number(process.env.REDIS_PORT),
+	constructor(
+		private readonly redisService: RedisService,
+		connection?: IORedis,
+	) {
+		if (connection) {
+			this.connection = connection;
+		} else {
+			this.connection = new IORedis({
+				host: process.env.REDIS_HOST,
+				port: Number(process.env.REDIS_PORT),
+			});
+		}
+	}
+
+	async onModuleDestroy(): Promise<void> {
+		for (const queue of this.queues.values()) {
+			await queue.close();
+		}
+		this.queues.clear();
+
+		// 에러 출력
+		await this.connection.quit().catch((err) => {
+			console.error('Failed to quit Redis connection', err);
 		});
+
+		return;
 	}
 
 	private getOrCreateQueue(name: string): Queue {

@@ -87,6 +87,9 @@ importers:
       '@testcontainers/mysql':
         specifier: ^10.7.2
         version: 10.28.0
+      '@testcontainers/redis':
+        specifier: ^11.0.3
+        version: 11.0.3
       '@types/bcrypt':
         specifier: ^5.0.2
         version: 5.0.2
@@ -837,6 +840,9 @@ packages:
 
   '@testcontainers/mysql@10.28.0':
     resolution: {integrity: sha512-yZKe86Esg8mPyr957aSwdkmDqXH17vab5aUcDqwR/E2fZpZxLetwfvmoVP+V6TpQQNTYrVTyP5T+HPMgaZeIkA==}
+
+  '@testcontainers/redis@11.0.3':
+    resolution: {integrity: sha512-0TTXdnzvH55nMc7wj5s+3e/h29M5EEZ7cQAoCR16ZzQgzcLlXFTCIzSi02EkSZYrxayaToXrBdWCc6skisFzZw==}
 
   '@tokenizer/inflate@0.2.7':
     resolution: {integrity: sha512-MADQgmZT1eKjp06jpI2yozxaU9uVs4GzzgSL+uEq7bVcJ9V1ZXQkeGNql1fsSI0gMy1vhvNTNbUqrx+pZfJVmg==}
@@ -1656,12 +1662,20 @@ packages:
     resolution: {integrity: sha512-plizRs/Vf15H+GCVxq2EUvyPK7ei9b/cVesHvjnX4xaXjM9spHe2Ytq0BitndFgvTJ3E3NljPNUEl7BAN43iZw==}
     engines: {node: '>= 6.0.0'}
 
+  docker-compose@1.2.0:
+    resolution: {integrity: sha512-wIU1eHk3Op7dFgELRdmOYlPYS4gP8HhH1ZmZa13QZF59y0fblzFDFmKPhyc05phCy2hze9OEvNZAsoljrs+72w==}
+    engines: {node: '>= 6.0.0'}
+
   docker-modem@5.0.6:
     resolution: {integrity: sha512-ens7BiayssQz/uAxGzH8zGXCtiV24rRWXdjNha5V4zSOcxmAZsfGVm/PPFbwQdqEkDnhG+SyR9E3zSHUbOKXBQ==}
     engines: {node: '>= 8.0'}
 
   dockerode@4.0.6:
     resolution: {integrity: sha512-FbVf3Z8fY/kALB9s+P9epCpWhfi/r0N2DgYYcYpsAUlaTxPjdsitsFobnltb+lyCgAIvf9C+4PSWlTnHlJMf1w==}
+    engines: {node: '>= 8.0'}
+
+  dockerode@4.0.7:
+    resolution: {integrity: sha512-R+rgrSRTRdU5mH14PZTCPZtW/zw3HDWNTS/1ZAQpL/5Upe/ye5K9WQkIysu4wBoiMwKynsz0a8qWuGsHgEvSAA==}
     engines: {node: '>= 8.0'}
 
   doctrine@3.0.0:
@@ -3285,6 +3299,9 @@ packages:
   testcontainers@10.28.0:
     resolution: {integrity: sha512-1fKrRRCsgAQNkarjHCMKzBKXSJFmzNTiTbhb5E/j5hflRXChEtHvkefjaHlgkNUjfw92/Dq8LTgwQn6RDBFbMg==}
 
+  testcontainers@11.0.3:
+    resolution: {integrity: sha512-Xu6ZAaE1FaLyHzFSYdCsd+xMPxUegUjkum0r6zgO8SinnFDHRX/PllIHMt1D+DVUmJqBvPQI6vge/J5jgE5vng==}
+
   text-decoder@1.2.3:
     resolution: {integrity: sha512-3/o9z3X0X0fTupwsYvR03pJ/DjWuqqrfwBgTQzdWDiQSm9KitAyz/9WqsT2JQW7KV2m+bC2ol/zqpW37NHxLaA==}
 
@@ -3443,6 +3460,10 @@ packages:
   undici@5.29.0:
     resolution: {integrity: sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==}
     engines: {node: '>=14.0'}
+
+  undici@7.10.0:
+    resolution: {integrity: sha512-u5otvFBOBZvmdjWLVW+5DAc9Nkq8f24g0O9oY7qw2JVIF1VocIFoyz9JFkuVOS2j41AufeO0xnlweJ2RLT8nGw==}
+    engines: {node: '>=20.18.1'}
 
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
@@ -4411,6 +4432,13 @@ snapshots:
       - bare-buffer
       - supports-color
 
+  '@testcontainers/redis@11.0.3':
+    dependencies:
+      testcontainers: 11.0.3
+    transitivePeerDependencies:
+      - bare-buffer
+      - supports-color
+
   '@tokenizer/inflate@0.2.7':
     dependencies:
       debug: 4.4.1
@@ -5342,6 +5370,10 @@ snapshots:
     dependencies:
       yaml: 2.8.0
 
+  docker-compose@1.2.0:
+    dependencies:
+      yaml: 2.8.0
+
   docker-modem@5.0.6:
     dependencies:
       debug: 4.4.1
@@ -5352,6 +5384,18 @@ snapshots:
       - supports-color
 
   dockerode@4.0.6:
+    dependencies:
+      '@balena/dockerignore': 1.0.2
+      '@grpc/grpc-js': 1.13.4
+      '@grpc/proto-loader': 0.7.15
+      docker-modem: 5.0.6
+      protobufjs: 7.4.0
+      tar-fs: 2.1.3
+      uuid: 10.0.0
+    transitivePeerDependencies:
+      - supports-color
+
+  dockerode@4.0.7:
     dependencies:
       '@balena/dockerignore': 1.0.2
       '@grpc/grpc-js': 1.13.4
@@ -7271,6 +7315,27 @@ snapshots:
       - bare-buffer
       - supports-color
 
+  testcontainers@11.0.3:
+    dependencies:
+      '@balena/dockerignore': 1.0.2
+      '@types/dockerode': 3.3.39
+      archiver: 7.0.1
+      async-lock: 1.4.1
+      byline: 5.0.0
+      debug: 4.4.1
+      docker-compose: 1.2.0
+      dockerode: 4.0.7
+      get-port: 7.1.0
+      proper-lockfile: 4.1.2
+      properties-reader: 2.3.0
+      ssh-remote-port-forward: 1.0.4
+      tar-fs: 3.0.9
+      tmp: 0.2.3
+      undici: 7.10.0
+    transitivePeerDependencies:
+      - bare-buffer
+      - supports-color
+
   text-decoder@1.2.3:
     dependencies:
       b4a: 1.6.7
@@ -7407,6 +7472,8 @@ snapshots:
   undici@5.29.0:
     dependencies:
       '@fastify/busboy': 2.1.1
+
+  undici@7.10.0: {}
 
   universalify@2.0.1: {}
 

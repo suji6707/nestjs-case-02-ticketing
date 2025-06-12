@@ -5,11 +5,16 @@ import { Redis } from 'ioredis';
 export class RedisService implements OnModuleInit, OnModuleDestroy {
 	private client: Redis;
 
+	constructor(client?: Redis) {
+		if (client) this.client = client;
+	}
+
 	onModuleInit(): Promise<void> {
-		this.client = new Redis({
-			host: process.env.REDIS_HOST,
-			port: Number(process.env.REDIS_PORT),
-		});
+		if (!this.client)
+			this.client = new Redis({
+				host: process.env.REDIS_HOST,
+				port: Number(process.env.REDIS_PORT),
+			});
 		return;
 	}
 
@@ -24,17 +29,26 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 		ttl?: number,
 		nx?: boolean,
 	): Promise<boolean> {
-		const result = await this.client.set(
-			key,
-			value,
-			'EX',
-			ttl,
-			nx ? 'NX' : undefined,
-		);
-		if (result !== 'OK') {
-			throw new Error(`Failed to acquire lock: ${key}`);
+		try {
+			let result: string;
+			if (ttl && nx) {
+				result = await this.client.set(key, value, 'EX', ttl, 'NX');
+			} else if (ttl) {
+				result = await this.client.set(key, value, 'EX', ttl);
+			} else if (nx) {
+				result = await this.client.set(key, value, 'NX');
+			} else {
+				result = await this.client.set(key, value);
+			}
+
+			if (result !== 'OK') {
+				throw new Error(`Failed to set key: ${key}`);
+			}
+			return true;
+		} catch (error) {
+			console.error(`Failed to set key: ${key}`, error);
+			return false;
 		}
-		return true;
 	}
 
 	async get(key: string): Promise<string | null> {
