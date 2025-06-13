@@ -1,0 +1,45 @@
+import { Concert } from 'src/ticketing/application/domain/models/concert';
+import { ConcertSchedule } from 'src/ticketing/application/domain/models/concert-schedule';
+import { SeatStatus } from 'src/ticketing/application/domain/models/seat';
+import { Seat } from 'src/ticketing/application/domain/models/seat';
+import { IConcertRepository } from 'src/ticketing/application/domain/repositories/iconcert.repository';
+import { ISeatRepository } from 'src/ticketing/application/domain/repositories/iseat.repository';
+
+export const createConcert = async (
+	concertRepository: IConcertRepository,
+): Promise<Concert> => {
+	const concert = new Concert({
+		title: 'test_concert',
+		description: 'test_description',
+	});
+	return concertRepository.createConcert(concert);
+};
+
+export const createSchedule = async (
+	concertId: number,
+	concertRepository: IConcertRepository,
+): Promise<ConcertSchedule> => {
+	const concertSchedule = new ConcertSchedule({
+		concertId,
+		basePrice: 10000,
+		startAt: new Date(),
+		endAt: new Date(),
+		totalSeats: 10,
+		isSoldOut: false,
+	});
+	return concertRepository.createSchedule(concertSchedule);
+};
+
+export const createSeat = async (
+	scheduleId: number,
+	seatRepository: ISeatRepository,
+): Promise<Seat> => {
+	const seat = new Seat({
+		scheduleId,
+		number: 50,
+		className: 'A1',
+		price: 10000,
+		status: SeatStatus.AVAILABLE,
+	});
+	return seatRepository.create(seat);
+};

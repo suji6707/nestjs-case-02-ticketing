@@ -46,4 +46,8 @@ export class Reservation {
 		this.status = ReservationStatus.CONFIRMED;
 		this.paidAt = new Date();
 	}
+
+	setExpired(): void {
+		this.status = ReservationStatus.EXPIRED;
+	}
 }

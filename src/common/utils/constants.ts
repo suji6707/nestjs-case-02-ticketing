@@ -6,3 +6,6 @@ export const RESERVATION_SESSION_TTL = 180; // 3min
 
 export const SEAT_LOCK_TTL = 300 + 1; // 5min + 1sec
 export const PAYMENT_TOKEN_TTL = 300;
+
+// SERVICE INJECTION TOKEN
+export const REDIS_CLIENT = 'REDIS_CLIENT';

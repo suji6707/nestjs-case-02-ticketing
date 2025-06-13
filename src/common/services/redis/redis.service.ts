@@ -1,20 +1,20 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { REDIS_CLIENT } from 'src/common/utils/constants';
 
 @Injectable()
-export class RedisService implements OnModuleInit, OnModuleDestroy {
-	private client: Redis;
+export class RedisService implements OnModuleDestroy {
+	constructor(@Inject(REDIS_CLIENT) readonly client: Redis) {}
 
-	onModuleInit(): Promise<void> {
-		this.client = new Redis({
-			host: process.env.REDIS_HOST,
-			port: Number(process.env.REDIS_PORT),
-		});
-		return;
-	}
+	async onModuleDestroy(): Promise<void> {
+		console.log('redis connection status 2:', this.client.status);
 
-	onModuleDestroy(): Promise<void> {
-		this.client.quit();
+		if (this.client.status !== 'end') {
+			await this.client.quit().catch((err) => {
+				console.log('RedisService OnDestroy Error', err);
+			});
+		}
+
 		return;
 	}
 
@@ -24,25 +24,34 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 		ttl?: number,
 		nx?: boolean,
 	): Promise<boolean> {
-		const result = await this.client.set(
-			key,
-			value,
-			'EX',
-			ttl,
-			nx ? 'NX' : undefined,
-		);
-		if (result !== 'OK') {
-			throw new Error(`Failed to acquire lock: ${key}`);
+		try {
+			let result: string;
+			if (ttl && nx) {
+				result = await this.client.set(key, value, 'EX', ttl, 'NX');
+			} else if (ttl) {
+				result = await this.client.set(key, value, 'EX', ttl);
+			} else if (nx) {
+				result = await this.client.set(key, value, 'NX');
+			} else {
+				result = await this.client.set(key, value);
+			}
+
+			if (result !== 'OK') {
+				throw new Error(`Failed to set key: ${key}`);
+			}
+			return true;
+		} catch (error) {
+			console.error(`Failed to set key: ${key}`, error);
+			return false;
 		}
-		return true;
 	}
 
 	async get(key: string): Promise<string | null> {
 		return this.client.get(key);
 	}
 
-	async delete(key: string): Promise<boolean> {
-		await this.client.del(key);
+	async delete(...keys: string[]): Promise<boolean> {
+		await this.client.del(...keys);
 		return true;
 	}
 
@@ -60,5 +69,9 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
 
 	async getSet(key: string): Promise<string[]> {
 		return this.client.smembers(key);
+	}
+
+	async getTtl(key: string): Promise<number> {
+		return this.client.ttl(key);
 	}
 }
