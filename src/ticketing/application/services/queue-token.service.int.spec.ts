@@ -22,14 +22,14 @@ describe('QueueTokenService Integration Test', () => {
 
 	beforeAll(async () => {
 		app = await Test.createTestingModule({
-			imports: [TicketingModule, CommonModule, AuthModule],
+			imports: [CommonModule, AuthModule],
 			providers: [QueueTokenService, PrismaService, QueueProducer],
 		})
 			.overrideProvider(PrismaService)
 			.useValue(PrismaServiceRef)
 			.overrideProvider(REDIS_CLIENT)
 			.useValue(RedisClientRef)
-			.overrideProvider(QueueProducer)
+			.overrideProvider(QueueProducer) // provider에 없어도 직접 override하므로 작동함
 			.useFactory({
 				factory: (redisService: RedisService): QueueProducer => {
 					return new QueueProducer(redisService);

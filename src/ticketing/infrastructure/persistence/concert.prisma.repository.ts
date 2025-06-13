@@ -31,4 +31,18 @@ export class ConcertPrismaRepository implements IConcertRepository {
 		});
 		return entities.map((entity) => new Seat(entity));
 	}
+
+	async createConcert(concert: Concert): Promise<Concert> {
+		const entity = await this.prisma.concertEntity.create({
+			data: concert,
+		});
+		return new Concert(entity);
+	}
+
+	async createSchedule(schedule: ConcertSchedule): Promise<ConcertSchedule> {
+		const entity = await this.prisma.concertScheduleEntity.create({
+			data: schedule,
+		});
+		return new ConcertSchedule(entity);
+	}
 }

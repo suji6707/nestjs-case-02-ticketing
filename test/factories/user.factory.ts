@@ -1,5 +1,5 @@
-import { User } from "src/auth/application/domain/models/user";
-import { IUserRepository } from "src/auth/application/domain/repositories/iuser.repository";
+import { User } from 'src/auth/application/domain/models/user';
+import { IUserRepository } from 'src/auth/application/domain/repositories/iuser.repository';
 
 export const createUser = async (
 	userRepository: IUserRepository,
@@ -9,4 +9,4 @@ export const createUser = async (
 		encryptedPassword: 'test_password',
 	});
 	return userRepository.save(user);
-}
+};

@@ -11,7 +11,7 @@ export class RedisService implements OnModuleDestroy {
 
 		if (this.client.status !== 'end') {
 			await this.client.quit().catch((err) => {
-				console.error('RedisService OnDestroy Error', err);
+				console.log('RedisService OnDestroy Error', err);
 			});
 		}
 

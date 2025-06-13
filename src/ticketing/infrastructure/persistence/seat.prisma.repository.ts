@@ -31,4 +31,11 @@ export class SeatPrismaRepository implements ISeatRepository {
 		});
 		return new Seat(entity);
 	}
+
+	async create(seat: Seat): Promise<Seat> {
+		const entity = await this.prisma.seatEntity.create({
+			data: seat,
+		});
+		return new Seat(entity);
+	}
 }
