@@ -4,7 +4,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { CommonModule } from 'src/common/common.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
-import { QUEUE_TOKEN_TTL } from 'src/common/utils/constants';
+import { QUEUE_TOKEN_TTL, REDIS_CLIENT } from 'src/common/utils/constants';
 import { getQueueTokenKey } from 'src/common/utils/redis-keys';
 import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
 import { TicketingModule } from 'src/ticketing/ticketing.module';
@@ -27,16 +27,12 @@ describe('QueueTokenService Integration Test', () => {
 		})
 			.overrideProvider(PrismaService)
 			.useValue(PrismaServiceRef)
-			.overrideProvider(RedisService)
-			.useFactory({
-				factory: (): RedisService => {
-					return new RedisService(RedisClientRef);
-				},
-			})
+			.overrideProvider(REDIS_CLIENT)
+			.useValue(RedisClientRef)
 			.overrideProvider(QueueProducer)
 			.useFactory({
 				factory: (redisService: RedisService): QueueProducer => {
-					return new QueueProducer(redisService, RedisClientRef);
+					return new QueueProducer(redisService);
 				},
 				inject: [RedisService],
 			})

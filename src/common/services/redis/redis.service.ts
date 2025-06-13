@@ -1,29 +1,12 @@
-import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Redis } from 'ioredis';
+import { REDIS_CLIENT } from 'src/common/utils/constants';
 
 @Injectable()
-export class RedisService implements OnModuleInit, OnModuleDestroy {
-	private client: Redis;
-	private _isManagedExternally = false;
-
-	constructor(client?: Redis) {
-		if (client) {
-			this.client = client;
-			this._isManagedExternally = true;
-		}
-	}
-
-	onModuleInit(): void {
-		if (!this.client)
-			this.client = new Redis({
-				host: process.env.REDIS_HOST,
-				port: Number(process.env.REDIS_PORT),
-			});
-		return;
-	}
+export class RedisService implements OnModuleDestroy {
+	constructor(@Inject(REDIS_CLIENT) readonly client: Redis) {}
 
 	async onModuleDestroy(): Promise<void> {
-		console.log('is managed externally 2:', this._isManagedExternally);
 		console.log('redis connection status 2:', this.client.status);
 
 		if (this.client.status !== 'end') {
