@@ -1,7 +1,10 @@
 import { TransactionHost, Transactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Inject, Injectable } from '@nestjs/common';
+import { SEAT_LOCK_TTL } from 'src/common/utils/constants';
+import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
 import { PaymentService } from 'src/payment/application/services/payment.service';
+import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
 import {
 	PaymentResponseDto,
 	ReserveResponseDto,
@@ -27,6 +30,7 @@ export class ReservationService {
 		private readonly seatLockService: SeatLockService,
 		private readonly paymentService: PaymentService,
 		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+		private readonly queueProducer: QueueProducer,
 	) {}
 
 	async temporaryReserve(
@@ -66,6 +70,19 @@ export class ReservationService {
 
 		// transaction
 		const newReservation = await this._reserveTransaction(seat, reservation);
+
+		// 5분뒤 만료 작업을 큐에 추가
+		await this.queueProducer.addJob(
+			EXPIRE_QUEUE_NAME,
+			{
+				reservationId: newReservation.id,
+				seatId: seatId,
+				lockToken: queueToken, // 잠금 해제시 필요
+			},
+			{
+				delay: SEAT_LOCK_TTL * 1000, // 5분 지연!!
+			},
+		);
 
 		return {
 			reservationId: newReservation.id,

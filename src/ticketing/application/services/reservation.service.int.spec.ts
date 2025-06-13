@@ -4,7 +4,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { CommonModule } from 'src/common/common.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
-import { REDIS_CLIENT } from 'src/common/utils/constants';
+import { REDIS_CLIENT, SEAT_LOCK_TTL } from 'src/common/utils/constants';
 import { PaymentService } from 'src/payment/application/services/payment.service';
 import { PaymentModule } from 'src/payment/payment.module';
 import { QueueModule } from 'src/queue/queue.module';
@@ -21,14 +21,18 @@ import {
 } from 'test/factories/concert-seat.factory';
 import { createUser } from 'test/factories/user.factory';
 import { PrismaServiceRef } from 'test/prisma-test-setup';
+import { addDelayJobAndExpire } from 'test/process/reservation-expire.mock';
 import { addJobAndStartProcess } from 'test/process/worker.mock';
 import { RedisClientRef } from 'test/redis-test-setup';
 import { ReservationStatus } from '../domain/models/reservation';
+import { SeatStatus } from '../domain/models/seat';
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
+import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
 import { PaymentTokenService } from './payment-token.service';
 import { QueueTokenService } from './queue-token.service';
+import { ReservationExpireConsumer } from './reservation-expire-consumer.service';
 import { ReservationService } from './reservation.service';
 import { SeatLockService } from './seat-lock.service';
 
@@ -37,12 +41,15 @@ describe('ReservationService', () => {
 	let userRepository: IUserRepository;
 	let concertRepository: IConcertRepository;
 	let seatRepository: ISeatRepository;
+	let reservationRepository: IReservationRepository;
 	let queueTokenService: QueueTokenService;
 	let paymentService: PaymentService;
 	let queueProducer: QueueProducer;
 	let queueConsumer: QueueConsumer;
+	let reservationExpireConsumer: ReservationExpireConsumer;
+	let seatLockService: SeatLockService;
 
-	beforeEach(async () => {
+	beforeAll(async () => {
 		const module: TestingModule = await Test.createTestingModule({
 			imports: [CommonModule, AuthModule, PaymentModule, QueueModule],
 			providers: [
@@ -69,6 +76,7 @@ describe('ReservationService', () => {
 				},
 				QueueProducer,
 				QueueConsumer,
+				ReservationExpireConsumer,
 				SeatLockService,
 			],
 		})
@@ -82,10 +90,17 @@ describe('ReservationService', () => {
 		userRepository = module.get<IUserRepository>('IUserRepository');
 		concertRepository = module.get<IConcertRepository>('IConcertRepository');
 		seatRepository = module.get<ISeatRepository>('ISeatRepository');
+		reservationRepository = module.get<IReservationRepository>(
+			'IReservationRepository',
+		);
 		paymentService = module.get<PaymentService>(PaymentService);
 		queueTokenService = module.get<QueueTokenService>('QueueTokenService');
 		queueProducer = module.get<QueueProducer>(QueueProducer);
 		queueConsumer = module.get<QueueConsumer>(QueueConsumer);
+		reservationExpireConsumer = module.get<ReservationExpireConsumer>(
+			ReservationExpireConsumer,
+		);
+		seatLockService = module.get<SeatLockService>(SeatLockService);
 	});
 
 	// 유저가 토큰을 발급받고 → 좌석 예약 요청 → 결제 완료까지의 흐름 테스트
@@ -128,9 +143,71 @@ describe('ReservationService', () => {
 		expect(reservation).toBeDefined();
 		expect(reservation.status).toBe(ReservationStatus.CONFIRMED);
 		expect(reservation.paidAt).toBeInstanceOf(Date);
+
+		const seatAfter = await seatRepository.findOne(reservation.seatId);
+		expect(seatAfter.status).toBe(SeatStatus.SOLD);
 	});
 
-	// 만료 시간 도래 후 좌석이 다시 예약 가능한지 확인
+	it('좌석 임시배정 시간 만료 후 좌석은 다시 예약 가능해야 한다', async () => {
+		jest.useFakeTimers();
+
+		// given
+		const user = await createUser(userRepository);
+		const concert = await createConcert(concertRepository);
+		const schedule = await createSchedule(concert.id, concertRepository);
+		const seat = await createSeat(schedule.id, seatRepository);
+
+		const { token } = await queueTokenService.createToken({
+			userId: user.id,
+			concertId: concert.id,
+		});
+
+		// 대기열 진입
+		await addJobAndStartProcess(
+			queueProducer,
+			queueConsumer,
+			queueTokenService,
+			concert.id,
+			token,
+		);
+
+		// 예약 요청
+		const { reservationId } = await reservationService.temporaryReserve(
+			user.id,
+			seat.id,
+			token,
+		);
+
+		const isLocked = await seatLockService.isLocked(seat.id);
+		expect(isLocked).toBe(true);
+
+		// when
+		// 5분 후 임시배정 만료처리하는 워커 호출
+		await addDelayJobAndExpire(
+			queueProducer,
+			reservationExpireConsumer,
+			reservationId,
+			seat.id,
+			token,
+		);
+
+		// Fast-forward time by 5 minutes
+		jest.advanceTimersByTime(SEAT_LOCK_TTL * 1000);
+		await Promise.resolve();
+
+		// then
+		// 좌석 락은 풀리고 임시배정은 만료된다
+		const isLockedAfter = await seatLockService.isLocked(seat.id);
+		expect(isLockedAfter).toBe(false);
+
+		const reservation = await reservationRepository.findOne(reservationId);
+		expect(reservation).toBeDefined();
+		expect(reservation.status).toBe(ReservationStatus.EXPIRED);
+		expect(reservation.paidAt).toBeNull();
+
+		const seatAfter = await seatRepository.findOne(seat.id);
+		expect(seatAfter.status).toBe(SeatStatus.AVAILABLE);
+	});
 });
 
 /**

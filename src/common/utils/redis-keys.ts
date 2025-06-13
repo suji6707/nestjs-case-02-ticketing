@@ -13,3 +13,5 @@ export const getQueueTokenJobIdKey = (token: string): string => {
 export const getQueueName = (concertId: number): string => {
 	return `concert-${concertId}-queue`;
 };
+
+export const EXPIRE_QUEUE_NAME = 'expire-reservation';
