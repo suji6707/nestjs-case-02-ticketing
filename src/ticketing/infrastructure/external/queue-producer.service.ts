@@ -53,4 +53,13 @@ export class QueueProducer implements OnModuleDestroy {
 		};
 		return queue.add(name, data, options);
 	}
+
+	async getJob(queueName: string, jobId: string): Promise<Job> {
+		const queue = this.getOrCreateQueue(queueName);
+		const job = (await queue.getJob(jobId)) as Job;
+		if (!job) {
+			throw new Error(`Job ${jobId} not found in queue ${queueName}`);
+		}
+		return job;
+	}
 }
