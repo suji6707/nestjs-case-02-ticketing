@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
-import { IsDate, IsNumber, IsString } from 'class-validator';
+import { IsDate, IsEnum, IsNumber, IsString } from 'class-validator';
+import { ReservationStatus } from 'src/ticketing/application/domain/models/reservation';
 
 export interface ITokenResponseDto {
 	token: string;
@@ -51,6 +52,13 @@ export class ReservationItem {
 	purchasePrice: number;
 
 	@ApiProperty({
+		example: ReservationStatus.CONFIRMED,
+		description: '예약 상태',
+	})
+	@IsEnum(ReservationStatus)
+	status: ReservationStatus;
+
+	@ApiProperty({
 		example: '2025-06-01T19:00:00.000Z',
 		description: '결제 시간',
 	})
@@ -65,6 +73,7 @@ export class PaymentResponseDto {
 			id: 10,
 			seatId: 55,
 			purchasePrice: 10000,
+			status: ReservationStatus.CONFIRMED,
 			paidAt: new Date(),
 		},
 		description: '결제 완료된 예약 정보',

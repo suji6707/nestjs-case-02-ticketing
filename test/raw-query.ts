@@ -1,6 +1,6 @@
 import { Connection } from 'mysql2';
 
-export const createUserQuery = async (client: Connection) => {
+export const createUserQuery = async (client: Connection): Promise<any> => {
 	const query = `
 	INSERT INTO users 
 	(id, email, encrypted_password)
@@ -18,4 +18,4 @@ export const createUserQuery = async (client: Connection) => {
 			resolve(result);
 		});
 	});
-}
+};

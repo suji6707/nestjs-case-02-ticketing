@@ -123,6 +123,7 @@ export class ReservationService {
 				id: updatedReservation.id,
 				seatId: updatedReservation.seatId,
 				purchasePrice: updatedReservation.purchasePrice,
+				status: updatedReservation.status,
 				paidAt: updatedReservation.paidAt,
 			},
 		};

@@ -14,10 +14,7 @@ export class QueueConsumer implements OnApplicationShutdown {
 	private readonly activeWorkers = new Map<string, Worker>();
 
 	constructor(private readonly redisService: RedisService) {
-		this.connection = new IORedis({
-			host: process.env.REDIS_HOST,
-			port: Number(process.env.REDIS_PORT),
-		});
+		this.connection = this.redisService.client;
 	}
 
 	async loadQueuesFromRedis(): Promise<void> {
