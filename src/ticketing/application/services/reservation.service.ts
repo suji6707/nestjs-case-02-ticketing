@@ -48,6 +48,7 @@ export class ReservationService {
 		}
 
 		// set Redis lock, val = queueToken
+		// @@@TODO: redis lock timeout 설정
 		const acquired = await this.seatLockService.lockSeat(seatId, queueToken);
 		if (!acquired) {
 			throw new Error('ALREADY_RESERVED');

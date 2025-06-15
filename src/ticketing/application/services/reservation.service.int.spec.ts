@@ -18,6 +18,7 @@ import { TestDataFactory } from 'test/factories/test-data.factory';
 import { PrismaServiceRef } from 'test/prisma-test-setup';
 import { RedisClientRef } from 'test/redis-test-setup';
 import { TestWorkerSimulator } from 'test/utils/worker-simulator';
+import { ReservationExpireConsumer } from '../../../queue/services/reservation-expire-consumer.service';
 import { ReservationStatus } from '../domain/models/reservation';
 import { SeatStatus } from '../domain/models/seat';
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
@@ -26,7 +27,6 @@ import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
 import { PaymentTokenService } from './payment-token.service';
 import { QueueTokenService } from './queue-token.service';
-import { ReservationExpireConsumer } from './reservation-expire-consumer.service';
 import { ReservationService } from './reservation.service';
 import { SeatLockService } from './seat-lock.service';
 
@@ -187,8 +187,6 @@ describe('ReservationService', () => {
 			queueProducer,
 			reservationExpireConsumer,
 			reservationId,
-			seat.id,
-			token,
 		);
 
 		// Fast-forward time by 5 minutes
