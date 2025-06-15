@@ -18,6 +18,10 @@ export class RedisService implements OnModuleDestroy {
 		return;
 	}
 
+	getConnection(): Redis {
+		return this.client;
+	}
+
 	async set(
 		key: string,
 		value: string,
@@ -73,5 +77,10 @@ export class RedisService implements OnModuleDestroy {
 
 	async getTtl(key: string): Promise<number> {
 		return this.client.ttl(key);
+	}
+
+	async flushDb(): Promise<boolean> {
+		const result = await this.client.flushdb();
+		return result === 'OK';
 	}
 }

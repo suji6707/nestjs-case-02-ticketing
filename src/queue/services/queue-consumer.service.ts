@@ -9,13 +9,10 @@ import { TokenStatus } from 'src/ticketing/application/domain/models/token';
 @Injectable()
 export class QueueConsumer implements OnApplicationShutdown {
 	private readonly logger = new Logger(QueueConsumer.name);
-	private readonly connection: IORedis;
 	private readonly queues: Set<string> = new Set();
 	private readonly activeWorkers = new Map<string, Worker>();
 
-	constructor(private readonly redisService: RedisService) {
-		this.connection = this.redisService.client;
-	}
+	constructor(private readonly redisService: RedisService) {}
 
 	async loadQueuesFromRedis(): Promise<void> {
 		const queues = await this.redisService.getSet('queues-shared');
@@ -31,10 +28,12 @@ export class QueueConsumer implements OnApplicationShutdown {
 				queueName,
 				this.process.bind(this), // Worker의 process 메서드 내에서 this가 QueueConsumer 인스턴스를 참조하도록 함
 				{
-					connection: this.connection,
-					concurrency: 5, // 동시 처리 수
+					connection: this.redisService.getConnection(),
+					concurrency: 5,
+					// autorun: false,
 				},
 			);
+			// await worker.run();
 			this.activeWorkers.set(queueName, worker);
 		}
 	}
@@ -65,8 +64,10 @@ export class QueueConsumer implements OnApplicationShutdown {
 		);
 		const closePromises = [];
 		for (const [queueName, worker] of this.activeWorkers) {
-			this.logger.log(`Closing worker for queue ${queueName}...`);
-			closePromises.push(worker.close());
+			if (worker) {
+				this.logger.log(`Closing worker for queue ${queueName}...`);
+				closePromises.push(worker.close());
+			}
 		}
 		await Promise.all(closePromises);
 		this.logger.log('All active workers have been closed.');

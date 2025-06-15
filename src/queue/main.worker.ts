@@ -1,7 +1,23 @@
-import { Logger } from '@nestjs/common';
+import { INestApplicationContext, Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from '../app.module';
 import { QueueConsumer } from './services/queue-consumer.service';
+import { ReservationExpireConsumer } from './services/reservation-expire-consumer.service';
+
+export const initializeAndStartWorkers = async (
+	app: INestApplicationContext,
+): Promise<void> => {
+	const queueConsumer = app.get(QueueConsumer);
+	const reservationExpireConsumer = app.get(ReservationExpireConsumer);
+
+	await queueConsumer.loadQueuesFromRedis();
+	await queueConsumer.initializeAndStartWorkers();
+
+	await reservationExpireConsumer.initializeAndStartWorkers();
+	if (process.env.NODE_ENV !== 'test') {
+		await reservationExpireConsumer.start();
+	}
+};
 
 async function bootstrap(): Promise<void> {
 	const logger = new Logger('QueueWorker');
@@ -9,8 +25,9 @@ async function bootstrap(): Promise<void> {
 
 	const app = await NestFactory.createApplicationContext(AppModule);
 
-	const queueConsumer = app.get(QueueConsumer);
-	await queueConsumer.loadQueuesFromRedis();
-	await queueConsumer.initializeAndStartWorkers();
+	await initializeAndStartWorkers(app);
 }
-bootstrap();
+
+if (require.main === module) {
+	bootstrap();
+}

@@ -15,7 +15,6 @@ import { SeatLockService } from 'src/ticketing/application/services/seat-lock.se
 @Injectable()
 export class ReservationExpireConsumer implements OnApplicationShutdown {
 	private readonly logger = new Logger(ReservationExpireConsumer.name);
-	private readonly connection: IORedis;
 	private worker: Worker;
 
 	constructor(
@@ -25,14 +24,20 @@ export class ReservationExpireConsumer implements OnApplicationShutdown {
 		private readonly seatRepository: ISeatRepository,
 		@Inject('IReservationRepository')
 		private readonly reservationRepository: IReservationRepository,
-	) {
-		this.connection = this.redisService.client;
-	}
+	) {}
 
 	async initializeAndStartWorkers(): Promise<void> {
 		this.worker = new Worker(EXPIRE_QUEUE_NAME, this.process.bind(this), {
-			connection: this.connection,
+			connection: {
+				...this.redisService.getConnection().options,
+				maxRetriesPerRequest: null,
+			},
+			// autorun: false,
 		});
+	}
+
+	async start(): Promise<void> {
+		await this.worker.run();
 	}
 
 	async process(
