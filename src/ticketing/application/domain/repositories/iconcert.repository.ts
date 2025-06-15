@@ -6,4 +6,6 @@ export interface IConcertRepository {
 	findConcerts(): Promise<Concert[]>;
 	findSchedules(concertId: number): Promise<ConcertSchedule[]>;
 	findSeats(scheduleId: number): Promise<Seat[]>;
+	createConcert(concert: Concert): Promise<Concert>;
+	createSchedule(schedule: ConcertSchedule): Promise<ConcertSchedule>;
 }

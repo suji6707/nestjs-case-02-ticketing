@@ -4,10 +4,12 @@ import { PaymentModule } from '../payment/payment.module';
 import { EventSearchService } from './application/services/event-search.service';
 import { PaymentTokenService } from './application/services/payment-token.service';
 import { QueueTokenService } from './application/services/queue-token.service';
+import { ReservationExpireConsumer } from './application/services/reservation-expire-consumer.service';
 import { ReservationService } from './application/services/reservation.service';
 import { SeatLockService } from './application/services/seat-lock.service';
 import { EventSearchController } from './controllers/event-search.controller';
 import { ReservationController } from './controllers/reservation.controller';
+import { QueueProducer } from './infrastructure/external/queue-producer.service';
 import { ConcertPrismaRepository } from './infrastructure/persistence/concert.prisma.repository';
 import { ReservationPrismaRepository } from './infrastructure/persistence/reservation.prisma.repository';
 import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.repository';
@@ -26,6 +28,8 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 			provide: 'IReservationRepository',
 			useClass: ReservationPrismaRepository,
 		},
+		QueueProducer,
+		ReservationExpireConsumer,
 	],
 	controllers: [EventSearchController, ReservationController],
 })
