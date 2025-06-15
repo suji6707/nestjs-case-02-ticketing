@@ -5,7 +5,7 @@ import { CommonModule } from 'src/common/common.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { PointHistoryPrismaRepository } from 'src/payment/infrastructure/persistence/point-history.repository';
 import { UserPointPrismaRepository } from 'src/payment/infrastructure/persistence/user-point.repository';
-import { createUser } from 'test/factories/user.factory';
+import { TestDataFactory } from 'test/factories/test-data.factory';
 import { PrismaServiceRef } from 'test/prisma-test-setup';
 import { PaymentService } from './payment.service';
 
@@ -46,7 +46,7 @@ describe('PaymentService Integration Test', () => {
 		it('정상적으로 충전한다.', async () => {
 			// given
 			const amount = 100;
-			const user = await createUser(userRepository);
+			const user = await TestDataFactory.createUser(userRepository);
 
 			// when
 			const result = await paymentService.charge(user.id, amount);
@@ -60,7 +60,7 @@ describe('PaymentService Integration Test', () => {
 		it('정상적으로 사용한다.', async () => {
 			// given
 			const amount = 100;
-			const user = await createUser(userRepository);
+			const user = await TestDataFactory.createUser(userRepository);
 
 			// when
 			const chargeResult = await paymentService.charge(user.id, amount);

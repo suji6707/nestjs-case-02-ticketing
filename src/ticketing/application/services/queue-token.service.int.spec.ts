@@ -9,10 +9,10 @@ import { getQueueTokenKey } from 'src/common/utils/redis-keys';
 import { QueueModule } from 'src/queue/queue.module';
 import { QueueConsumer } from 'src/queue/services/queue-consumer.service';
 import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
-import { createUser } from 'test/factories/user.factory';
+import { TestDataFactory } from 'test/factories/test-data.factory';
 import { PrismaServiceRef } from 'test/prisma-test-setup';
-import { addJobAndStartProcess } from 'test/process/worker.mock';
 import { RedisClientRef } from 'test/redis-test-setup';
+import { TestWorkerSimulator } from 'test/utils/worker-simulator';
 import { TokenStatus } from '../domain/models/token';
 import { QueueTokenService } from './queue-token.service';
 
@@ -58,7 +58,7 @@ describe('QueueTokenService Integration Test', () => {
 	describe('createToken', () => {
 		it('대기열 토큰을 생성한다', async () => {
 			// given
-			const user = await createUser(userRepository);
+			const user = await TestDataFactory.createUser(userRepository);
 			userId = user.id;
 
 			// when
@@ -83,7 +83,7 @@ describe('QueueTokenService Integration Test', () => {
 		it('대기열 토큰을 검증한다', async () => {
 			// given
 			const concertId = 1;
-			await addJobAndStartProcess(
+			await TestWorkerSimulator.addJobAndStartProcess(
 				queueProducer,
 				queueConsumer,
 				queueTokenService,
