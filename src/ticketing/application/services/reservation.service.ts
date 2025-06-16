@@ -1,6 +1,6 @@
 import { TransactionHost, Transactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { SEAT_LOCK_TTL } from 'src/common/utils/constants';
 import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
 import { PaymentService } from 'src/payment/application/services/payment.service';
@@ -48,10 +48,9 @@ export class ReservationService {
 		}
 
 		// set Redis lock, val = queueToken
-		// @@@TODO: redis lock timeout 설정
 		const acquired = await this.seatLockService.lockSeat(seatId, queueToken);
 		if (!acquired) {
-			throw new Error('ALREADY_RESERVED');
+			throw new ConflictException('ALREADY_RESERVED');
 		}
 
 		// if success, issue payment token - set Redis

@@ -3,6 +3,7 @@ import {
 	Injectable,
 	Logger,
 	OnApplicationShutdown,
+	OnModuleDestroy,
 } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
@@ -13,7 +14,7 @@ import { ISeatRepository } from 'src/ticketing/application/domain/repositories/i
 import { SeatLockService } from 'src/ticketing/application/services/seat-lock.service';
 
 @Injectable()
-export class ReservationExpireConsumer implements OnApplicationShutdown {
+export class ReservationExpireConsumer implements OnModuleDestroy {
 	private readonly logger = new Logger(ReservationExpireConsumer.name);
 	private worker: Worker;
 
@@ -32,12 +33,8 @@ export class ReservationExpireConsumer implements OnApplicationShutdown {
 				...this.redisService.getConnection().options,
 				maxRetriesPerRequest: null,
 			},
-			// autorun: false,
+			autorun: false,
 		});
-	}
-
-	async start(): Promise<void> {
-		await this.worker.run();
 	}
 
 	async process(
@@ -64,7 +61,7 @@ export class ReservationExpireConsumer implements OnApplicationShutdown {
 		return true;
 	}
 
-	async onApplicationShutdown(): Promise<void> {
+	async onModuleDestroy(): Promise<void> {
 		this.logger.log('Closing expiration worker due to application shutdown...');
 		await this.worker.close();
 		this.logger.log('Expiration worker has been closed.');

@@ -14,9 +14,6 @@ export const initializeAndStartWorkers = async (
 	await queueConsumer.initializeAndStartWorkers();
 
 	await reservationExpireConsumer.initializeAndStartWorkers();
-	if (process.env.NODE_ENV !== 'test') {
-		await reservationExpireConsumer.start();
-	}
 };
 
 async function bootstrap(): Promise<void> {

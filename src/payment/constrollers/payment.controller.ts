@@ -5,11 +5,7 @@ import { Request } from 'express';
 import { AuthGuard } from '../../auth/application/services/auth.guard';
 import { PaymentService } from '../application/services/payment.service';
 import { ChargeRequestDto, PointUseRequestDto } from './dtos/request.dto';
-import {
-	BalanceResponseDto,
-	ChargeResponseDto,
-	PointUseResponseDto,
-} from './dtos/response.dto';
+import { ChargeResponseDto, PointUseResponseDto } from './dtos/response.dto';
 
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
