@@ -1,44 +1,27 @@
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from 'src/app.module';
-import { User } from 'src/auth/application/domain/models/user';
-import { IUserRepository } from 'src/auth/application/domain/repositories/iuser.repository';
-import { AuthModule } from 'src/auth/auth.module';
-import { CommonModule } from 'src/common/common.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
-import { REDIS_CLIENT, SEAT_LOCK_TTL } from 'src/common/utils/constants';
-import { PaymentService } from 'src/payment/application/services/payment.service';
-import { PaymentModule } from 'src/payment/payment.module';
+import { REDIS_CLIENT } from 'src/common/utils/constants';
 import { initializeAndStartWorkers } from 'src/queue/main.worker';
-import { QueueModule } from 'src/queue/queue.module';
 import { QueueConsumer } from 'src/queue/services/queue-consumer.service';
 import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
-import { ConcertPrismaRepository } from 'src/ticketing/infrastructure/persistence/concert.prisma.repository';
-import { ReservationPrismaRepository } from 'src/ticketing/infrastructure/persistence/reservation.prisma.repository';
-import { SeatPrismaRepository } from 'src/ticketing/infrastructure/persistence/seat.prisma.repository';
-import { TicketingModule } from 'src/ticketing/ticketing.module';
 import * as request from 'supertest';
 import { TestDataFactory } from 'test/factories/test-data.factory';
 import { PrismaServiceRef } from 'test/prisma-test-setup';
 import { RedisClientRef } from 'test/redis-test-setup';
 import { TestWorkerSimulator } from 'test/utils/worker-simulator';
-import { ReservationExpireConsumer } from '../../../queue/services/reservation-expire-consumer.service';
 import { ReservationStatus } from '../domain/models/reservation';
 import { SeatStatus } from '../domain/models/seat';
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
-import { ITokenService } from './interfaces/itoken.service';
-import { PaymentTokenService } from './payment-token.service';
 import { QueueTokenService } from './queue-token.service';
-import { ReservationService } from './reservation.service';
-import { SeatLockService } from './seat-lock.service';
 
 describe('ReservationService E2E Test', () => {
 	let app: INestApplication;
 	let redisService: RedisService;
-	let userRepository: IUserRepository;
 	let concertRepository: IConcertRepository;
 	let seatRepository: ISeatRepository;
 	let reservationRepository: IReservationRepository;
@@ -62,7 +45,6 @@ describe('ReservationService E2E Test', () => {
 		await initializeAndStartWorkers(app);
 
 		redisService = moduleRef.get(RedisService);
-		userRepository = moduleRef.get('IUserRepository');
 		concertRepository = moduleRef.get('IConcertRepository');
 		seatRepository = moduleRef.get('ISeatRepository');
 		reservationRepository = moduleRef.get('IReservationRepository');
@@ -150,7 +132,7 @@ describe('ReservationService E2E Test', () => {
 					seatId: seat.id,
 					queueToken: queueTokens[i],
 				})
-				.expect(201);
+				.expect(201); // @@@ response 자체는 에러가 아님. status code 400을 에러로 정의하면 에러임. 여기선 201이 아니면 에러로 정의. expect가 없으면 전부 fulfilled로 처리됨.
 
 			promises.push(promise);
 		}
