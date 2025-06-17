@@ -1,3 +1,4 @@
+import { PrismaTransactionalClient } from '@nestjs-cls/transactional-adapter-prisma';
 import { PointHistoryEntity } from '@prisma/client';
 
 export enum PointHistoryType {
@@ -10,6 +11,7 @@ export interface IPointHistoryRepository {
 		userId: number,
 		type: PointHistoryType,
 		amount: number,
+		tx?: PrismaTransactionalClient,
 	): Promise<PointHistoryEntity>;
 	getByUserId(userId: number): Promise<PointHistoryEntity[]>;
 }

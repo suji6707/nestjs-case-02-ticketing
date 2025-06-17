@@ -3,6 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { REDIS_CLIENT } from 'src/common/utils/constants';
+import { initializeAndStartWorkers } from 'src/queue/main.worker';
 import * as request from 'supertest';
 import { PrismaServiceRef } from 'test/prisma-test-setup';
 import { RedisClientRef } from 'test/redis-test-setup';
@@ -25,6 +26,8 @@ describe('PaymentService Integration Test', () => {
 		app = moduleRef.createNestApplication();
 		await app.init();
 
+		await initializeAndStartWorkers(app);
+
 		userPointRepository = moduleRef.get('IUserPointRepository');
 	});
 
@@ -33,7 +36,7 @@ describe('PaymentService Integration Test', () => {
 	});
 
 	describe('charge', () => {
-		it('동시 잔액차감 충돌시 음수가 되지 않아야 한다.', async () => {
+		it('동시 잔액차감시 순차적으로 처리되어야 한다.', async () => {
 			// given
 			const signupRes = await request(app.getHttpServer())
 				.post('/auth/signup')
