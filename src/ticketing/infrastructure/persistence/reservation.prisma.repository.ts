@@ -29,6 +29,11 @@ export class ReservationPrismaRepository implements IReservationRepository {
 		return new Reservation(entity);
 	}
 
+	async findAll(): Promise<Reservation[]> {
+		const entities = await this.prisma.reservationEntity.findMany();
+		return entities.map((entity) => new Reservation(entity));
+	}
+
 	async update(reservation: Reservation): Promise<Reservation> {
 		const entity = await this.prisma.reservationEntity.update({
 			where: {

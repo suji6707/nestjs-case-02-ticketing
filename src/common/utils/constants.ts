@@ -1,4 +1,5 @@
-export const AUTH_TOKEN_TTL = 1800; // 3h
+// export const AUTH_TOKEN_TTL = '1800'; // 3h
+export const AUTH_TOKEN_TTL = '7d'; // 테스트용
 
 export const QUEUE_TOKEN_TTL = 3600; // 1h
 // 예약 페이지 세션 만료 시간

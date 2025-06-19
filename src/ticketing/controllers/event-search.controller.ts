@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import {
+	Body,
+	Controller,
+	Get,
+	Param,
+	ParseIntPipe,
+	Post,
+	Req,
+} from '@nestjs/common';
 import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -30,7 +38,7 @@ export class EventSearchController {
 	@Post('/concerts/:id/schedules')
 	async getSchedules(
 		@Req() req: Request,
-		@Param('id') concertId: number,
+		@Param('id', ParseIntPipe) concertId: number,
 		@Body() dto: ConcertScheduleRequestDto,
 	): Promise<ConcertSchduleResponseDto> {
 		const userId = req.userId;

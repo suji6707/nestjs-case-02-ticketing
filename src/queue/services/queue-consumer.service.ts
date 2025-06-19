@@ -34,7 +34,10 @@ export class QueueConsumer implements OnModuleDestroy {
 				queueName,
 				this.process.bind(this), // Worker의 process 메서드 내에서 this가 QueueConsumer 인스턴스를 참조하도록 함
 				{
-					connection: this.redisService.getConnection(),
+					connection: {
+						...this.redisService.getConnection().options,
+						maxRetriesPerRequest: null,
+					},
 					concurrency: 5,
 					// autorun: false,
 				},
