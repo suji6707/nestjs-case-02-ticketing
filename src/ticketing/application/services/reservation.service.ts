@@ -102,7 +102,7 @@ export class ReservationService {
 		if (seatBefore.status !== SeatStatus.AVAILABLE) {
 			throw new ConflictException('ALREADY_RESERVED');
 		}
-		await this.seatRepository.update(seat);
+		await this.seatRepository.update(seat, SeatStatus.AVAILABLE);
 		const newReservation = await this.reservationRepository.create(reservation);
 		return newReservation;
 	}
@@ -117,7 +117,7 @@ export class ReservationService {
 		if (seatBefore.status !== SeatStatus.AVAILABLE) {
 			throw new ConflictException('ALREADY_RESERVED');
 		}
-		await this.seatRepository.update(seat);
+		await this.seatRepository.update(seat, SeatStatus.AVAILABLE);
 		const newReservation = await this.reservationRepository.create(reservation);
 		console.log('newReservation', newReservation);
 		return newReservation;
@@ -152,7 +152,7 @@ export class ReservationService {
 		reservation.setConfirmed();
 
 		const updatedReservation = await this.txHost.withTransaction(async () => {
-			await this.seatRepository.update(seat);
+			await this.seatRepository.update(seat, SeatStatus.RESERVED);
 			return await this.reservationRepository.update(reservation);
 		});
 

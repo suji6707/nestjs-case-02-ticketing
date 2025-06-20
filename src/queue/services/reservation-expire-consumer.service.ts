@@ -9,6 +9,7 @@ import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
+import { SeatStatus } from 'src/ticketing/application/domain/models/seat';
 import { IReservationRepository } from 'src/ticketing/application/domain/repositories/ireservation.repository';
 import { ISeatRepository } from 'src/ticketing/application/domain/repositories/iseat.repository';
 import { SeatLockService } from 'src/ticketing/application/services/seat-lock.service';
@@ -56,7 +57,7 @@ export class ReservationExpireConsumer implements OnModuleDestroy {
 		// seat 상태 변경: RESERVED -> AVAILABLE
 		const seat = await this.seatRepository.findOne(seatId);
 		seat.setAvailable();
-		await this.seatRepository.update(seat);
+		await this.seatRepository.update(seat, SeatStatus.RESERVED);
 
 		return true;
 	}

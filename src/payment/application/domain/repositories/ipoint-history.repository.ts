@@ -11,7 +11,6 @@ export interface IPointHistoryRepository {
 		userId: number,
 		type: PointHistoryType,
 		amount: number,
-		tx?: PrismaTransactionalClient,
 	): Promise<PointHistoryEntity>;
 	getByUserId(userId: number): Promise<PointHistoryEntity[]>;
 }

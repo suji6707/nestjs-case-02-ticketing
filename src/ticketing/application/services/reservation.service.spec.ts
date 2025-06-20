@@ -182,6 +182,7 @@ describe('ReservationService', () => {
 				id: mockReservation.id,
 				seatId: mockReservation.seatId,
 				purchasePrice: mockReservation.purchasePrice,
+				status: ReservationStatus.CONFIRMED,
 				paidAt: new Date(),
 			},
 		};
@@ -192,6 +193,7 @@ describe('ReservationService', () => {
 				id: mockSeat.id,
 				status: SeatStatus.SOLD,
 			}),
+			SeatStatus.RESERVED,
 		);
 		expect(reservationRepository.update).toHaveBeenCalledWith(
 			expect.objectContaining({

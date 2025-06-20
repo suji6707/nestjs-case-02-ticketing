@@ -9,7 +9,6 @@ import { IReservationRepository } from 'src/ticketing/application/domain/reposit
 @Injectable()
 export class ReservationPrismaRepository implements IReservationRepository {
 	constructor(
-		private prisma: PrismaService,
 		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
 	) {}
 
@@ -24,7 +23,7 @@ export class ReservationPrismaRepository implements IReservationRepository {
 	}
 
 	async findOne(id: number): Promise<optional<Reservation>> {
-		const entity = await this.prisma.reservationEntity.findUnique({
+		const entity = await this.txHost.tx.reservationEntity.findUnique({
 			where: {
 				id,
 			},
@@ -36,12 +35,12 @@ export class ReservationPrismaRepository implements IReservationRepository {
 	}
 
 	async findAll(): Promise<Reservation[]> {
-		const entities = await this.prisma.reservationEntity.findMany();
+		const entities = await this.txHost.tx.reservationEntity.findMany();
 		return entities.map((entity) => new Reservation(entity));
 	}
 
 	async update(reservation: Reservation): Promise<Reservation> {
-		const entity = await this.prisma.reservationEntity.update({
+		const entity = await this.txHost.tx.reservationEntity.update({
 			where: {
 				id: reservation.id,
 			},

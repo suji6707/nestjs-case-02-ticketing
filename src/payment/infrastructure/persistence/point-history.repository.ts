@@ -1,7 +1,7 @@
-import { PrismaTransactionalClient } from '@nestjs-cls/transactional-adapter-prisma';
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Injectable } from '@nestjs/common';
 import { PointHistoryEntity } from '@prisma/client';
-import { PrismaService } from 'src/common/services/prisma.service';
 import {
 	IPointHistoryRepository,
 	PointHistoryType,
@@ -9,16 +9,16 @@ import {
 
 @Injectable()
 export class PointHistoryPrismaRepository implements IPointHistoryRepository {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+	) {}
 
 	async create(
 		userId: number,
 		type: PointHistoryType,
 		amount: number,
-		tx?: PrismaTransactionalClient,
 	): Promise<PointHistoryEntity> {
-		const prismaClient = tx || this.prisma;
-		return prismaClient.pointHistoryEntity.create({
+		return this.txHost.tx.pointHistoryEntity.create({
 			data: {
 				userId,
 				type,
@@ -28,7 +28,7 @@ export class PointHistoryPrismaRepository implements IPointHistoryRepository {
 	}
 
 	async getByUserId(userId: number): Promise<PointHistoryEntity[]> {
-		return this.prisma.pointHistoryEntity.findMany({
+		return this.txHost.tx.pointHistoryEntity.findMany({
 			where: {
 				userId,
 			},
