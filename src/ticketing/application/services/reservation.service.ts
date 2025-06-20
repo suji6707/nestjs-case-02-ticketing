@@ -48,10 +48,10 @@ export class ReservationService {
 		}
 
 		// set Redis lock, val = queueToken
-		const acquired = await this.seatLockService.lockSeat(seatId, queueToken);
-		if (!acquired) {
-			throw new ConflictException('ALREADY_RESERVED');
-		}
+		// const acquired = await this.seatLockService.lockSeat(seatId, queueToken);
+		// if (!acquired) {
+		// 	throw new ConflictException('ALREADY_RESERVED');
+		// }
 
 		// if success, issue payment token - set Redis
 		const { token: paymentToken } = await this.paymentTokenService.createToken({
@@ -95,7 +95,7 @@ export class ReservationService {
 		seat: Seat,
 		reservation: Reservation,
 	): Promise<Reservation> {
-		await this.seatRepository.update(seat);
+		const updatedSeat = await this.seatRepository.update(seat);
 		const newReservation = await this.reservationRepository.create(reservation);
 		return newReservation;
 	}

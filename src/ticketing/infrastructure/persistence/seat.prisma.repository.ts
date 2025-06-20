@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { ConflictException, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/common/services/prisma.service';
-import { Seat } from 'src/ticketing/application/domain/models/seat';
+import { Seat, SeatStatus } from 'src/ticketing/application/domain/models/seat';
 import { ISeatRepository } from 'src/ticketing/application/domain/repositories/iseat.repository';
 
 @Injectable()
@@ -19,17 +19,31 @@ export class SeatPrismaRepository implements ISeatRepository {
 		return new Seat(entity);
 	}
 
+	/**
+	 * (참고) REPEATABLE READ 격리 수준: 트랜잭션 중 다른 트랜잭션이 해당 데이터 읽을 수 있으나 UPDATE는 잠금이 발생해 동시 수정을 막음
+	 * 현재 상황: 두 트랜잭션이 거의 동시에 시작하여 둘 다 status가 AVAILABLE인 것을 확인한 후, 순차적으로 UPDATE를 시도
+	 */
 	async update(seat: Seat): Promise<Seat> {
-		const entity = await this.prisma.seatEntity.update({
-			where: {
-				id: seat.id,
-			},
-			data: {
-				status: seat.status,
-				price: seat.price,
-			},
-		});
-		return new Seat(entity);
+		try {
+			const entity = await this.prisma.seatEntity.update({
+				where: {
+					id: seat.id,
+					status: SeatStatus.AVAILABLE,
+				},
+				data: {
+					status: seat.status,
+					price: seat.price,
+				},
+			});
+			// 바뀌어야 할 값이 바뀌어있지 않으면 업데이트 실패로 간주
+			if (entity.status !== seat.status || entity.price !== seat.price) {
+				throw new ConflictException('Failed to update seat');
+			}
+			return new Seat(entity);
+		} catch (error) {
+			console.log(error);
+			throw new Error('Failed to update seat');
+		}
 	}
 
 	async create(seat: Seat): Promise<Seat> {
