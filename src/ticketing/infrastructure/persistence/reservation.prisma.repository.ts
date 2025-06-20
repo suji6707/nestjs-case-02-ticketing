@@ -1,3 +1,6 @@
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { PrismaTransactionalClient } from '@nestjs-cls/transactional-adapter-prisma';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { Reservation } from 'src/ticketing/application/domain/models/reservation';
@@ -5,10 +8,13 @@ import { IReservationRepository } from 'src/ticketing/application/domain/reposit
 
 @Injectable()
 export class ReservationPrismaRepository implements IReservationRepository {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+	) {}
 
 	async create(reservation: Reservation): Promise<Reservation> {
-		const entity = await this.prisma.reservationEntity.create({
+		const entity = await this.txHost.tx.reservationEntity.create({
 			data: reservation,
 		});
 		if (!entity) {

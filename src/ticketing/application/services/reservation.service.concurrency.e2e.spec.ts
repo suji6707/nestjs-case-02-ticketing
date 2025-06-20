@@ -62,7 +62,7 @@ describe('ReservationService E2E Test', () => {
 		await redisService.flushDb();
 	});
 
-	it('동시에 여러명이 같은 좌석을 예약해도 좌석은 한 명에게만 배정되어야 한다(with 조건부 UPDATE)', async () => {
+	it('동시에 여러명이 같은 좌석을 예약해도 좌석은 한 명에게만 배정되어야 한다(with X-lock)', async () => {
 		// given
 		const numUsers = 2;
 
@@ -138,9 +138,6 @@ describe('ReservationService E2E Test', () => {
 		}
 
 		const results = await Promise.allSettled(promises);
-
-		const seatBefore = await seatRepository.findOne(seat.id);
-		console.log('seatBefore!!', seatBefore);
 
 		const reservations = await reservationRepository.findAll();
 		console.log('reservations!!', reservations);

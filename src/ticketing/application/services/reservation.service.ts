@@ -112,19 +112,13 @@ export class ReservationService {
 		seat: Seat,
 		reservation: Reservation,
 	): Promise<Reservation> {
-		const seatBefore = await this.seatRepository.selectForUpdate(
-			seat.id,
-			this.txHost.tx,
-		);
+		const seatBefore = await this.seatRepository.selectForUpdate(seat.id);
 		console.log('seatBefore', seatBefore);
 		if (seatBefore.status !== SeatStatus.AVAILABLE) {
 			throw new ConflictException('ALREADY_RESERVED');
 		}
-		await this.seatRepository.update(seat, this.txHost.tx);
-		const newReservation = await this.reservationRepository.create(
-			reservation,
-			this.txHost.tx,
-		);
+		await this.seatRepository.update(seat);
+		const newReservation = await this.reservationRepository.create(reservation);
 		console.log('newReservation', newReservation);
 		return newReservation;
 	}
