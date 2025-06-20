@@ -65,12 +65,12 @@ export class QueueConsumer implements OnModuleDestroy {
 				.delete(cacheKey)
 				.then(() => {
 					this.logger.log(
-						`[Timer] Successfully deleted cache key: ${cacheKey}`,
+						`[Timer] Successfully deleted cache key: ${cacheKey.slice(0, 20)}`,
 					);
 				})
 				.catch((err) => {
 					this.logger.error(
-						`[Timer] Failed to delete cache key ${cacheKey} after session expiry: ${err.message}`,
+						`[Timer] Failed to delete cache key ${cacheKey.slice(0, 20)} after session expiry: ${err.message}`,
 					);
 				});
 			this.activeTimers.delete(timerId);
