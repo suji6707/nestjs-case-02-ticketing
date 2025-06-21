@@ -99,26 +99,111 @@ async selectForUpdate(userId: number): Promise<optional<UserPoint>> {
 }
 ```
 
-<!-- ### 2.3. 배정 타임아웃 해제 스케줄러 (임시 배정 로직 오류 방지)
+### 2.3. 배정 만료처리 vs 결제 승인 동시성 충돌
 
 -   문제 상황: 예약 만료와 결제 승인 간의 동시 처리 충돌
 -   해결 전략: BullMQ(지연 작업 큐) 와 조건부 UPDATE를 결합하여 해결. 좌석 임시 배정 시 5분 뒤에 실행될 만료 작업을 큐에 등록. 결제와 만료 처리 로직 모두 1)예약 상태가 `PENDING`이고 2)좌석이 `RESERVED`일 때만 다음 상태로 변경할 수 있다는 조건을 추가하여, 먼저 실행된 작업만 성공하도록 보장.
 -   구현:
     -   예약 만료 로직 (Consumer): `PENDING` 상태의 예약만 `EXPIRED`로 변경하고 좌석을 `AVAILABLE`로 되돌림.
     -   결제 확정 로직 (Service): `PENDING` 상태의 예약만 `CONFIRMED`로 변경하고 좌석을 `SOLD`로 변경. 이 모든 과정은 단일 트랜잭션으로 묶여 원자성을 보장.
+- 보완할 부분: 낙관적 락(조건부 UPDATE)의 경우 조건을 확인하는 select에서 성공하면서 일관성이 깨지는 문제. 베타락이 더 안전하게 P2025 에러를 발생시킬 것으로 보임.
 
-    ```typescript
-    // reservation.service.ts - confirmReservation
-    const updatedReservation = await tx.reservationEntity.updateMany({
-        where: { id: reservation.id, status: ReservationStatus.PENDING },
-        data: { status: ReservationStatus.CONFIRMED },
-    });
-    if (updatedReservation.count === 0) {
-        throw new ConflictException('이미 만료되거나 확정된 예약입니다.');
-    }
-    ```
+```typescript
+// reservation.service.ts - temporaryReserve (결제요청시 delay 큐에 등록)
+const newReservation = await this._reserveWithPessimisticLock(
+	seat,
+	reservation,
+);
 
-## 3. 동시성 테스트 전략 및 결과
+// 5분뒤 만료 작업을 큐에 추가
+await this.queueProducer.addJob(
+	EXPIRE_QUEUE_NAME,
+	{
+		reservationId: newReservation.id,
+		seatId: seatId,
+		lockToken: queueToken, // 잠금 해제시 필요
+	},
+	{
+		delay: SEAT_LOCK_TTL * 1000, // 5분 지연!!
+	},
+);
+```
+
+```typescript
+// reservation.service.ts - confirmReservation (결제 승인)
+async confirmReservation(
+	userId: number,
+	reservationId: number,
+	paymentToken: string,
+): Promise<PaymentResponseDto> {
+	// verify
+	const isValidToken = await this.paymentTokenService.verifyToken(
+		userId,
+		paymentToken,
+	);
+	if (!isValidToken) {
+		throw new Error('Invalid payment token');
+	}
+
+	// 좌석 최종 배정
+	const updatedReservation = await this.txHost.withTransaction(async () => {
+		// 예약상태 변경
+		const reservation =
+			await this.reservationRepository.findOne(reservationId);
+		if (reservation.status !== ReservationStatus.PENDING) {
+			throw new Error('NOT_PENDING_RESERVATION');
+		}
+		reservation.setConfirmed();
+		const updatedReservation = await this.reservationRepository.update(
+			reservation,
+			ReservationStatus.PENDING,
+		);
+
+		// 좌석상태 변경
+		const seat = await this.seatRepository.findOne(reservation.seatId);
+		seat.setSold();
+		await this.seatRepository.update(seat, SeatStatus.RESERVED);
+
+		// 결제 모듈 호출
+		await this.paymentService.use(userId, reservation.purchasePrice);
+
+		return updatedReservation;
+	});
+
+```
+
+```typescript
+// reservation-expire-consumer.service.ts
+async process(
+	job: Job<{ reservationId: number; seatId: number; lockToken: string }>,
+): Promise<boolean> {
+	const { reservationId, seatId, lockToken } = job.data;
+	this.logger.log(
+		`Processing job ${job.id} from queue ${job.queueName} with reservationId: ${reservationId}, seatId: ${seatId}, lockToken: ${lockToken}`,
+	);
+
+	await this.txHost.withTransaction(async () => {
+		// 예약 상태 변경: PENDING -> EXPIRED
+		const reservation =
+			await this.reservationRepository.findOne(reservationId);
+		reservation.setExpired();
+		// 조건부 UPDATE
+		await this.reservationRepository.update(
+			reservation,
+			ReservationStatus.PENDING,
+		);
+
+		// seat 상태 변경: RESERVED -> AVAILABLE
+		const seat = await this.seatRepository.findOne(seatId);
+		seat.setAvailable();
+		await this.seatRepository.update(seat, SeatStatus.RESERVED);
+	});
+
+	return true;
+}
+```
+
+<!-- ## 3. 동시성 테스트 전략 및 결과
 
 ### 3.1. 멀티스레드 통합 테스트 (Jest)
 
