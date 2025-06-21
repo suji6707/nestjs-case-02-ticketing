@@ -9,7 +9,7 @@ import {
 	PaymentResponseDto,
 	ReserveResponseDto,
 } from '../../controllers/dtos/response.dto';
-import { Reservation } from '../domain/models/reservation';
+import { Reservation, ReservationStatus } from '../domain/models/reservation';
 import { Seat, SeatStatus } from '../domain/models/seat';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
@@ -137,23 +137,30 @@ export class ReservationService {
 			throw new Error('Invalid payment token');
 		}
 
-		// get reservation info -> price
-		const reservation = await this.reservationRepository.findOne(reservationId);
-		if (!reservation) {
-			throw new Error('NOT_FOUND_RESERVATION');
-		}
-
-		// 결제 모듈 호출
-		await this.paymentService.use(userId, reservation.purchasePrice);
-
 		// 좌석 최종 배정
-		const seat = await this.seatRepository.findOne(reservation.seatId);
-		seat.setSold();
-		reservation.setConfirmed();
-
 		const updatedReservation = await this.txHost.withTransaction(async () => {
+			// 예약상태 변경
+			const reservation =
+				await this.reservationRepository.findOne(reservationId);
+			console.log('🟡reservation', reservation);
+			if (reservation.status !== ReservationStatus.PENDING) {
+				throw new Error('NOT_PENDING_RESERVATION');
+			}
+			reservation.setConfirmed();
+			const updatedReservation = await this.reservationRepository.update(
+				reservation,
+				ReservationStatus.PENDING,
+			);
+
+			// 좌석상태 변경
+			const seat = await this.seatRepository.findOne(reservation.seatId);
+			seat.setSold();
 			await this.seatRepository.update(seat, SeatStatus.RESERVED);
-			return await this.reservationRepository.update(reservation);
+
+			// 결제 모듈 호출
+			await this.paymentService.use(userId, reservation.purchasePrice);
+
+			return updatedReservation;
 		});
 
 		await this.paymentTokenService.deleteToken(paymentToken);

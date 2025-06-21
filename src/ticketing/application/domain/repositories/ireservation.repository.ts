@@ -1,5 +1,9 @@
 import { PrismaTransactionalClient } from '@nestjs-cls/transactional-adapter-prisma';
-import { Reservation, ReservationProps } from '../models/reservation';
+import {
+	Reservation,
+	ReservationProps,
+	ReservationStatus,
+} from '../models/reservation';
 
 export interface IReservationRepository {
 	create(
@@ -8,5 +12,9 @@ export interface IReservationRepository {
 	): Promise<Reservation>;
 	findOne(id: number): Promise<Reservation>;
 	findAll(): Promise<Reservation[]>;
-	update(reservation: Reservation): Promise<Reservation>;
+	selectForUpdate(id: number): Promise<optional<Reservation>>;
+	update(
+		reservation: Reservation,
+		expectedStatus: ReservationStatus,
+	): Promise<Reservation>;
 }

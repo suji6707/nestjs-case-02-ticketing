@@ -1,3 +1,5 @@
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import {
 	Inject,
 	Injectable,
@@ -9,6 +11,7 @@ import { Job, Worker } from 'bullmq';
 import IORedis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
+import { ReservationStatus } from 'src/ticketing/application/domain/models/reservation';
 import { SeatStatus } from 'src/ticketing/application/domain/models/seat';
 import { IReservationRepository } from 'src/ticketing/application/domain/repositories/ireservation.repository';
 import { ISeatRepository } from 'src/ticketing/application/domain/repositories/iseat.repository';
@@ -26,6 +29,7 @@ export class ReservationExpireConsumer implements OnModuleDestroy {
 		private readonly seatRepository: ISeatRepository,
 		@Inject('IReservationRepository')
 		private readonly reservationRepository: IReservationRepository,
+		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
 	) {}
 
 	async initializeAndStartWorkers(): Promise<void> {
@@ -47,17 +51,25 @@ export class ReservationExpireConsumer implements OnModuleDestroy {
 		);
 
 		// seat lock 해제
-		await this.seatLockService.unlockSeat(seatId, lockToken);
+		// await this.seatLockService.unlockSeat(seatId, lockToken);
 
-		// 예약 상태 변경: PENDING -> EXPIRED
-		const reservation = await this.reservationRepository.findOne(reservationId);
-		reservation.setExpired();
-		await this.reservationRepository.update(reservation);
+		await this.txHost.withTransaction(async () => {
+			// 예약 상태 변경: PENDING -> EXPIRED
+			const reservation =
+				await this.reservationRepository.findOne(reservationId);
+			console.log('🟡Worker reservation', reservation);
+			reservation.setExpired();
+			// 조건부 UPDATE
+			await this.reservationRepository.update(
+				reservation,
+				ReservationStatus.PENDING,
+			);
 
-		// seat 상태 변경: RESERVED -> AVAILABLE
-		const seat = await this.seatRepository.findOne(seatId);
-		seat.setAvailable();
-		await this.seatRepository.update(seat, SeatStatus.RESERVED);
+			// seat 상태 변경: RESERVED -> AVAILABLE
+			const seat = await this.seatRepository.findOne(seatId);
+			seat.setAvailable();
+			await this.seatRepository.update(seat, SeatStatus.RESERVED);
+		});
 
 		return true;
 	}
