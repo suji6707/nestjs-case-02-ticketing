@@ -1,12 +1,17 @@
-import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
+import {
+	Inject,
+	Injectable,
+	OnApplicationShutdown,
+	OnModuleDestroy,
+} from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { REDIS_CLIENT } from 'src/common/utils/constants';
 
 @Injectable()
-export class RedisService implements OnModuleDestroy {
+export class RedisService implements OnApplicationShutdown {
 	constructor(@Inject(REDIS_CLIENT) readonly client: Redis) {}
 
-	async onModuleDestroy(): Promise<void> {
+	async onApplicationShutdown(): Promise<void> {
 		console.log('redis connection status 2:', this.client.status);
 
 		if (this.client.status !== 'end') {
@@ -16,6 +21,10 @@ export class RedisService implements OnModuleDestroy {
 		}
 
 		return;
+	}
+
+	getConnection(): Redis {
+		return this.client;
 	}
 
 	async set(
@@ -73,5 +82,10 @@ export class RedisService implements OnModuleDestroy {
 
 	async getTtl(key: string): Promise<number> {
 		return this.client.ttl(key);
+	}
+
+	async flushDb(): Promise<boolean> {
+		const result = await this.client.flushdb();
+		return result === 'OK';
 	}
 }

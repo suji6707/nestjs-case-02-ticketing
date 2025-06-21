@@ -1,10 +1,8 @@
 import { Module } from '@nestjs/common';
-import { QueueModule } from 'src/queue/queue.module';
 import { PaymentModule } from '../payment/payment.module';
 import { EventSearchService } from './application/services/event-search.service';
 import { PaymentTokenService } from './application/services/payment-token.service';
 import { QueueTokenService } from './application/services/queue-token.service';
-import { ReservationExpireConsumer } from './application/services/reservation-expire-consumer.service';
 import { ReservationService } from './application/services/reservation.service';
 import { SeatLockService } from './application/services/seat-lock.service';
 import { EventSearchController } from './controllers/event-search.controller';
@@ -15,7 +13,7 @@ import { ReservationPrismaRepository } from './infrastructure/persistence/reserv
 import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.repository';
 
 @Module({
-	imports: [PaymentModule, QueueModule],
+	imports: [PaymentModule],
 	providers: [
 		EventSearchService,
 		ReservationService,
@@ -29,8 +27,18 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 			useClass: ReservationPrismaRepository,
 		},
 		QueueProducer,
-		ReservationExpireConsumer,
 	],
 	controllers: [EventSearchController, ReservationController],
+	exports: [
+		SeatLockService,
+		{
+			provide: 'IReservationRepository',
+			useClass: ReservationPrismaRepository,
+		},
+		{
+			provide: 'ISeatRepository',
+			useClass: SeatPrismaRepository,
+		},
+	],
 })
 export class TicketingModule {}

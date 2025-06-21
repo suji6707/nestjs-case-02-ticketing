@@ -14,16 +14,11 @@ import { ConcertPrismaRepository } from 'src/ticketing/infrastructure/persistenc
 import { ReservationPrismaRepository } from 'src/ticketing/infrastructure/persistence/reservation.prisma.repository';
 import { SeatPrismaRepository } from 'src/ticketing/infrastructure/persistence/seat.prisma.repository';
 import { TicketingModule } from 'src/ticketing/ticketing.module';
-import {
-	createConcert,
-	createSchedule,
-	createSeat,
-} from 'test/factories/concert-seat.factory';
-import { createUser } from 'test/factories/user.factory';
+import { TestDataFactory } from 'test/factories/test-data.factory';
 import { PrismaServiceRef } from 'test/prisma-test-setup';
-import { addDelayJobAndExpire } from 'test/process/reservation-expire.mock';
-import { addJobAndStartProcess } from 'test/process/worker.mock';
 import { RedisClientRef } from 'test/redis-test-setup';
+import { TestWorkerSimulator } from 'test/utils/worker-simulator';
+import { ReservationExpireConsumer } from '../../../queue/services/reservation-expire-consumer.service';
 import { ReservationStatus } from '../domain/models/reservation';
 import { SeatStatus } from '../domain/models/seat';
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
@@ -32,7 +27,6 @@ import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
 import { PaymentTokenService } from './payment-token.service';
 import { QueueTokenService } from './queue-token.service';
-import { ReservationExpireConsumer } from './reservation-expire-consumer.service';
 import { ReservationService } from './reservation.service';
 import { SeatLockService } from './seat-lock.service';
 
@@ -106,10 +100,13 @@ describe('ReservationService', () => {
 	// 유저가 토큰을 발급받고 → 좌석 예약 요청 → 결제 완료까지의 흐름 테스트
 	it('예약 흐름 테스트', async () => {
 		// given
-		const user = await createUser(userRepository);
-		const concert = await createConcert(concertRepository);
-		const schedule = await createSchedule(concert.id, concertRepository);
-		const seat = await createSeat(schedule.id, seatRepository);
+		const user = await TestDataFactory.createUser(userRepository);
+		const concert = await TestDataFactory.createConcert(concertRepository);
+		const schedule = await TestDataFactory.createSchedule(
+			concert.id,
+			concertRepository,
+		);
+		const seat = await TestDataFactory.createSeat(schedule.id, seatRepository);
 
 		const { token } = await queueTokenService.createToken({
 			userId: user.id,
@@ -120,7 +117,7 @@ describe('ReservationService', () => {
 		await paymentService.charge(user.id, 10000);
 
 		// 대기열 진입
-		await addJobAndStartProcess(
+		await TestWorkerSimulator.addJobAndStartProcess(
 			queueProducer,
 			queueConsumer,
 			queueTokenService,
@@ -152,10 +149,13 @@ describe('ReservationService', () => {
 		jest.useFakeTimers();
 
 		// given
-		const user = await createUser(userRepository);
-		const concert = await createConcert(concertRepository);
-		const schedule = await createSchedule(concert.id, concertRepository);
-		const seat = await createSeat(schedule.id, seatRepository);
+		const user = await TestDataFactory.createUser(userRepository);
+		const concert = await TestDataFactory.createConcert(concertRepository);
+		const schedule = await TestDataFactory.createSchedule(
+			concert.id,
+			concertRepository,
+		);
+		const seat = await TestDataFactory.createSeat(schedule.id, seatRepository);
 
 		const { token } = await queueTokenService.createToken({
 			userId: user.id,
@@ -163,7 +163,7 @@ describe('ReservationService', () => {
 		});
 
 		// 대기열 진입
-		await addJobAndStartProcess(
+		await TestWorkerSimulator.addJobAndStartProcess(
 			queueProducer,
 			queueConsumer,
 			queueTokenService,
@@ -183,12 +183,10 @@ describe('ReservationService', () => {
 
 		// when
 		// 5분 후 임시배정 만료처리하는 워커 호출
-		await addDelayJobAndExpire(
+		await TestWorkerSimulator.addDelayJobAndExpire(
 			queueProducer,
 			reservationExpireConsumer,
 			reservationId,
-			seat.id,
-			token,
 		);
 
 		// Fast-forward time by 5 minutes

@@ -1,6 +1,7 @@
 import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { PaymentService } from 'src/payment/application/services/payment.service';
+import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
 import { Reservation, ReservationStatus } from '../domain/models/reservation';
 import { Seat, SeatStatus } from '../domain/models/seat';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
@@ -22,6 +23,7 @@ describe('ReservationService', () => {
 	let seatLockService: SeatLockService;
 	let paymentService: PaymentService;
 	let txHost: TransactionHost<TransactionalAdapterPrisma>;
+	let queueProducer: QueueProducer;
 
 	let mockReservation: Reservation;
 	let mockSeat: Seat;
@@ -57,6 +59,12 @@ describe('ReservationService', () => {
 			charge: jest.fn(),
 			use: jest.fn(),
 		} as unknown as PaymentService;
+		queueProducer = {
+			addJob: jest.fn(),
+			getJob: jest.fn(),
+			getOrCreateQueue: jest.fn(),
+			onModuleDestroy: jest.fn(),
+		} as unknown as QueueProducer;
 
 		service = new ReservationService(
 			seatRepository,
@@ -66,6 +74,7 @@ describe('ReservationService', () => {
 			seatLockService,
 			paymentService,
 			txHost,
+			queueProducer,
 		);
 
 		jest.useFakeTimers().setSystemTime(new Date(2025, 6, 5, 12, 0, 0));
@@ -173,6 +182,7 @@ describe('ReservationService', () => {
 				id: mockReservation.id,
 				seatId: mockReservation.seatId,
 				purchasePrice: mockReservation.purchasePrice,
+				status: ReservationStatus.CONFIRMED,
 				paidAt: new Date(),
 			},
 		};
@@ -183,6 +193,7 @@ describe('ReservationService', () => {
 				id: mockSeat.id,
 				status: SeatStatus.SOLD,
 			}),
+			SeatStatus.RESERVED,
 		);
 		expect(reservationRepository.update).toHaveBeenCalledWith(
 			expect.objectContaining({

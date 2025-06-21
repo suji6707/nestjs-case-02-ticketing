@@ -1,6 +1,6 @@
 import { TransactionHost, Transactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
-import { Inject, Injectable } from '@nestjs/common';
+import { ConflictException, Inject, Injectable } from '@nestjs/common';
 import { SEAT_LOCK_TTL } from 'src/common/utils/constants';
 import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
 import { PaymentService } from 'src/payment/application/services/payment.service';
@@ -9,8 +9,8 @@ import {
 	PaymentResponseDto,
 	ReserveResponseDto,
 } from '../../controllers/dtos/response.dto';
-import { Reservation } from '../domain/models/reservation';
-import { Seat } from '../domain/models/seat';
+import { Reservation, ReservationStatus } from '../domain/models/reservation';
+import { Seat, SeatStatus } from '../domain/models/seat';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
@@ -48,10 +48,10 @@ export class ReservationService {
 		}
 
 		// set Redis lock, val = queueToken
-		const acquired = await this.seatLockService.lockSeat(seatId, queueToken);
-		if (!acquired) {
-			throw new Error('ALREADY_RESERVED');
-		}
+		// const acquired = await this.seatLockService.lockSeat(seatId, queueToken);
+		// if (!acquired) {
+		// 	throw new ConflictException('ALREADY_RESERVED');
+		// }
 
 		// if success, issue payment token - set Redis
 		const { token: paymentToken } = await this.paymentTokenService.createToken({
@@ -69,7 +69,10 @@ export class ReservationService {
 		});
 
 		// transaction
-		const newReservation = await this._reserveTransaction(seat, reservation);
+		const newReservation = await this._reserveWithPessimisticLock(
+			seat,
+			reservation,
+		);
 
 		// 5분뒤 만료 작업을 큐에 추가
 		await this.queueProducer.addJob(
@@ -91,12 +94,32 @@ export class ReservationService {
 	}
 
 	@Transactional()
-	async _reserveTransaction(
+	async _reserveWithOptimisticLock(
 		seat: Seat,
 		reservation: Reservation,
 	): Promise<Reservation> {
-		await this.seatRepository.update(seat);
+		const seatBefore = await this.seatRepository.findOne(seat.id);
+		if (seatBefore.status !== SeatStatus.AVAILABLE) {
+			throw new ConflictException('ALREADY_RESERVED');
+		}
+		await this.seatRepository.update(seat, SeatStatus.AVAILABLE);
 		const newReservation = await this.reservationRepository.create(reservation);
+		return newReservation;
+	}
+
+	@Transactional()
+	async _reserveWithPessimisticLock(
+		seat: Seat,
+		reservation: Reservation,
+	): Promise<Reservation> {
+		const seatBefore = await this.seatRepository.selectForUpdate(seat.id);
+		console.log('seatBefore', seatBefore);
+		if (seatBefore.status !== SeatStatus.AVAILABLE) {
+			throw new ConflictException('ALREADY_RESERVED');
+		}
+		await this.seatRepository.update(seat, SeatStatus.AVAILABLE);
+		const newReservation = await this.reservationRepository.create(reservation);
+		console.log('newReservation', newReservation);
 		return newReservation;
 	}
 
@@ -114,23 +137,30 @@ export class ReservationService {
 			throw new Error('Invalid payment token');
 		}
 
-		// get reservation info -> price
-		const reservation = await this.reservationRepository.findOne(reservationId);
-		if (!reservation) {
-			throw new Error('NOT_FOUND_RESERVATION');
-		}
-
-		// 결제 모듈 호출
-		await this.paymentService.use(userId, reservation.purchasePrice);
-
 		// 좌석 최종 배정
-		const seat = await this.seatRepository.findOne(reservation.seatId);
-		seat.setSold();
-		reservation.setConfirmed();
-
 		const updatedReservation = await this.txHost.withTransaction(async () => {
-			await this.seatRepository.update(seat);
-			return await this.reservationRepository.update(reservation);
+			// 예약상태 변경
+			const reservation =
+				await this.reservationRepository.findOne(reservationId);
+			console.log('🟡reservation', reservation);
+			if (reservation.status !== ReservationStatus.PENDING) {
+				throw new Error('NOT_PENDING_RESERVATION');
+			}
+			reservation.setConfirmed();
+			const updatedReservation = await this.reservationRepository.update(
+				reservation,
+				ReservationStatus.PENDING,
+			);
+
+			// 좌석상태 변경
+			const seat = await this.seatRepository.findOne(reservation.seatId);
+			seat.setSold();
+			await this.seatRepository.update(seat, SeatStatus.RESERVED);
+
+			// 결제 모듈 호출
+			await this.paymentService.use(userId, reservation.purchasePrice);
+
+			return updatedReservation;
 		});
 
 		await this.paymentTokenService.deleteToken(paymentToken);

@@ -12,7 +12,7 @@ import { TicketingModule } from './ticketing/ticketing.module';
 		CommonModule,
 		AuthModule,
 		TicketingModule,
-		// QueueModule,
+		QueueModule,
 		PaymentModule,
 	],
 	controllers: [],

@@ -65,6 +65,7 @@ export class QueueTokenService implements ITokenService {
 		// check expired
 		const cacheKey = getQueueTokenKey(token);
 		const tokenStatus = await this.redisService.get(cacheKey);
+		console.log('queueTokenStatus', tokenStatus);
 		if (!tokenStatus) {
 			return false;
 		}

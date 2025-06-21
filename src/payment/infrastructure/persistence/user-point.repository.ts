@@ -1,14 +1,29 @@
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/common/services/prisma.service';
+import { UserPointEntity } from '@prisma/client';
 import { UserPoint } from 'src/payment/application/domain/models/user-point';
 import { IUserPointRepository } from 'src/payment/application/domain/repositories/iuser-point.repository';
 
 @Injectable()
 export class UserPointPrismaRepository implements IUserPointRepository {
-	constructor(private readonly prismaService: PrismaService) {}
+	constructor(
+		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+	) {}
+
+	private makeOutput(raw: any): UserPoint {
+		const props = {
+			id: raw.id,
+			userId: raw.user_id,
+			balance: raw.balance,
+			createdAt: raw.created_at,
+			updatedAt: raw.updated_at,
+		};
+		return new UserPoint(props);
+	}
 
 	async create(userId: number): Promise<UserPoint> {
-		const entity = await this.prismaService.userPointEntity.create({
+		const entity = await this.txHost.tx.userPointEntity.create({
 			data: {
 				userId,
 				balance: 0,
@@ -18,7 +33,7 @@ export class UserPointPrismaRepository implements IUserPointRepository {
 	}
 
 	async findOne(userId: number): Promise<optional<UserPoint>> {
-		const entity = await this.prismaService.userPointEntity.findUnique({
+		const entity = await this.txHost.tx.userPointEntity.findUnique({
 			where: {
 				userId,
 			},
@@ -30,7 +45,7 @@ export class UserPointPrismaRepository implements IUserPointRepository {
 	}
 
 	async update(userPoint: UserPoint): Promise<UserPoint> {
-		const entity = await this.prismaService.userPointEntity.update({
+		const entity = await this.txHost.tx.userPointEntity.update({
 			where: {
 				userId: userPoint.userId,
 			},
@@ -39,5 +54,17 @@ export class UserPointPrismaRepository implements IUserPointRepository {
 			},
 		});
 		return new UserPoint(entity);
+	}
+
+	async selectForUpdate(userId: number): Promise<optional<UserPoint>> {
+		const result = await this.txHost.tx.$queryRaw<UserPointEntity[]>`
+			SELECT * FROM user_points
+			WHERE user_id = ${userId}
+			FOR UPDATE;
+		`;
+		if (result.length > 0) {
+			return this.makeOutput(result[0]);
+		}
+		return null;
 	}
 }

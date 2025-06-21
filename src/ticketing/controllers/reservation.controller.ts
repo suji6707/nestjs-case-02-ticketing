@@ -63,7 +63,7 @@ export class ReservationController {
 	}
 
 	// 결제 요청 및 좌석 임시배정, 임시 결제 토큰 삭제
-	@Post('/payment')
+	@Post('/confirm')
 	@ApiOperation({ summary: '결제 요청' })
 	@ApiOkResponse({ type: PaymentResponseDto, description: '결제 요청 성공' })
 	async payment(

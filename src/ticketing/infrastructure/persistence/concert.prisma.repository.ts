@@ -1,3 +1,5 @@
+import { TransactionHost } from '@nestjs-cls/transactional';
+import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { Concert } from 'src/ticketing/application/domain/models/concert';
@@ -7,15 +9,17 @@ import { IConcertRepository } from 'src/ticketing/application/domain/repositorie
 
 @Injectable()
 export class ConcertPrismaRepository implements IConcertRepository {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
+	) {}
 
 	async findConcerts(): Promise<Concert[]> {
-		const entities = await this.prisma.concertEntity.findMany();
+		const entities = await this.txHost.tx.concertEntity.findMany();
 		return entities.map((entity) => new Concert(entity));
 	}
 
 	async findSchedules(concertId: number): Promise<ConcertSchedule[]> {
-		const entities = await this.prisma.concertScheduleEntity.findMany({
+		const entities = await this.txHost.tx.concertScheduleEntity.findMany({
 			where: {
 				concertId,
 			},
@@ -24,7 +28,7 @@ export class ConcertPrismaRepository implements IConcertRepository {
 	}
 
 	async findSeats(scheduleId: number): Promise<Seat[]> {
-		const entities = await this.prisma.seatEntity.findMany({
+		const entities = await this.txHost.tx.seatEntity.findMany({
 			where: {
 				scheduleId,
 			},
@@ -33,14 +37,14 @@ export class ConcertPrismaRepository implements IConcertRepository {
 	}
 
 	async createConcert(concert: Concert): Promise<Concert> {
-		const entity = await this.prisma.concertEntity.create({
+		const entity = await this.txHost.tx.concertEntity.create({
 			data: concert,
 		});
 		return new Concert(entity);
 	}
 
 	async createSchedule(schedule: ConcertSchedule): Promise<ConcertSchedule> {
-		const entity = await this.prisma.concertScheduleEntity.create({
+		const entity = await this.txHost.tx.concertScheduleEntity.create({
 			data: schedule,
 		});
 		return new ConcertSchedule(entity);
