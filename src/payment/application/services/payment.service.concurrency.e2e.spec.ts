@@ -9,7 +9,7 @@ import { PrismaServiceRef } from 'test/prisma-test-setup';
 import { RedisClientRef } from 'test/redis-test-setup';
 import { IUserPointRepository } from '../domain/repositories/iuser-point.repository';
 
-describe('PaymentService Integration Test', () => {
+describe('PaymentService E2E Test', () => {
 	let app: INestApplication;
 	let userPointRepository: IUserPointRepository;
 

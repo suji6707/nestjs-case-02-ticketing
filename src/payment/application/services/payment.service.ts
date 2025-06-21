@@ -46,11 +46,7 @@ export class PaymentService {
 
 	async use(userId: number, amount: number): Promise<PointUseResponseDto> {
 		const updatedUserPoint = await this.txHost.withTransaction(async () => {
-			const txClient = this.txHost.tx;
-			const userPoint = await this.userPointRepository.selectForUpdate(
-				userId,
-				txClient,
-			);
+			const userPoint = await this.userPointRepository.selectForUpdate(userId);
 			if (!userPoint) {
 				throw new Error('NOT_FOUND_USER_POINT');
 			}
@@ -61,9 +57,8 @@ export class PaymentService {
 				userId,
 				PointHistoryType.USE,
 				amount,
-				txClient,
 			);
-			return await this.userPointRepository.update(userPoint, txClient);
+			return await this.userPointRepository.update(userPoint);
 		});
 
 		return { balance: updatedUserPoint.balance };
