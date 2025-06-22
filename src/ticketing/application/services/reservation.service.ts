@@ -1,7 +1,11 @@
 import { TransactionHost, Transactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
-import { ConflictException, Inject, Injectable } from '@nestjs/common';
-import { SEAT_LOCK_TTL } from 'src/common/utils/constants';
+import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
+import { IDistributedLockService } from 'src/common/interfaces/idistributed-lock.service';
+import {
+	DISTRIBUTED_LOCK_SERVICE,
+	SEAT_LOCK_TTL,
+} from 'src/common/utils/constants';
 import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
 import { PaymentService } from 'src/payment/application/services/payment.service';
 import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
@@ -14,10 +18,11 @@ import { Seat, SeatStatus } from '../domain/models/seat';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
-import { SeatLockService } from './seat-lock.service';
 
 @Injectable()
 export class ReservationService {
+	private readonly logger = new Logger(ReservationService.name);
+
 	constructor(
 		@Inject('ISeatRepository')
 		private readonly seatRepository: ISeatRepository,
@@ -27,10 +32,11 @@ export class ReservationService {
 		private readonly queueTokenService: ITokenService,
 		@Inject('PaymentTokenService')
 		private readonly paymentTokenService: ITokenService,
-		private readonly seatLockService: SeatLockService,
 		private readonly paymentService: PaymentService,
 		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
 		private readonly queueProducer: QueueProducer,
+		@Inject(DISTRIBUTED_LOCK_SERVICE)
+		private readonly distributedLockService: IDistributedLockService,
 	) {}
 
 	async temporaryReserve(
@@ -47,18 +53,6 @@ export class ReservationService {
 			throw new Error('Invalid queue token');
 		}
 
-		// set Redis lock, val = queueToken
-		// const acquired = await this.seatLockService.lockSeat(seatId, queueToken);
-		// if (!acquired) {
-		// 	throw new ConflictException('ALREADY_RESERVED');
-		// }
-
-		// if success, issue payment token - set Redis
-		const { token: paymentToken } = await this.paymentTokenService.createToken({
-			userId,
-			seatId,
-		});
-
 		// domain logic
 		const seat = await this.seatRepository.findOne(seatId);
 		seat.setReserved();
@@ -68,11 +62,28 @@ export class ReservationService {
 			purchasePrice: seat.price,
 		});
 
-		// transaction
-		const newReservation = await this._reserveWithPessimisticLock(
-			seat,
-			reservation,
-		);
+		// 분산락 + db 조건부 UPDATE
+		let newReservation: Reservation;
+		let paymentToken: string;
+		try {
+			newReservation = await this.distributedLockService.withLock<Reservation>(
+				seatId.toString(),
+				SEAT_LOCK_TTL,
+				async () => {
+					return await this._reserveWithOptimisticLock(seat, reservation);
+				},
+				1, // 재시도 X. 한 요청만 락을 획득하고 나머지는 실패하는것이 정상
+			);
+			// 결제토큰 발급
+			const { token } = await this.paymentTokenService.createToken({
+				userId,
+				seatId,
+			});
+			paymentToken = token;
+		} catch (error) {
+			this.logger.error(error);
+			throw new Error('FAILED_TO_ACQUIRE_LOCK'); // 이미 예약된 좌석입니다
+		}
 
 		// 5분뒤 만료 작업을 큐에 추가
 		await this.queueProducer.addJob(
@@ -104,6 +115,7 @@ export class ReservationService {
 		}
 		await this.seatRepository.update(seat, SeatStatus.AVAILABLE);
 		const newReservation = await this.reservationRepository.create(reservation);
+		console.log('newReservation', newReservation);
 		return newReservation;
 	}
 

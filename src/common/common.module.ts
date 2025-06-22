@@ -4,8 +4,9 @@ import { Global, Module } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { ClsModule } from 'nestjs-cls';
 import { PrismaService } from './services/prisma.service';
+import { DistributedLockService } from './services/redis/distributed-lock.service';
 import { RedisService } from './services/redis/redis.service';
-import { REDIS_CLIENT } from './utils/constants';
+import { DISTRIBUTED_LOCK_SERVICE, REDIS_CLIENT } from './utils/constants';
 
 @Global()
 @Module({
@@ -37,7 +38,11 @@ import { REDIS_CLIENT } from './utils/constants';
 			},
 		},
 		RedisService,
+		{
+			provide: DISTRIBUTED_LOCK_SERVICE,
+			useClass: DistributedLockService,
+		},
 	],
-	exports: [PrismaService, RedisService],
+	exports: [PrismaService, RedisService, DISTRIBUTED_LOCK_SERVICE],
 })
 export class CommonModule {}
