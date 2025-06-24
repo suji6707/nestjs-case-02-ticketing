@@ -1,3 +1,13 @@
+// 분산락 관련
+export const getSeatLockKey = (seatId: number): string => {
+	return `seat:${seatId}`;
+};
+
+export const getPaymentLockKey = (seatId: number): string => {
+	return `payment:${seatId}`;
+};
+
+// Token 관련
 export const getQueueTokenKey = (token: string): string => {
 	return `token:queue:${token}`;
 };
