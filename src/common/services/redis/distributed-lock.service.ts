@@ -34,9 +34,12 @@ export class DistributedLockService implements IDistributedLockService {
 			await new Promise((resolve) => setTimeout(resolve, retryInterval));
 		}
 		if (!lockAcquired) {
-			throw new Error(`Failed to acquire lock for key: ${key}`);
+			throw new Error(
+				`Failed to acquire lock for key: ${key} after ${maxRetry} retries`,
+			);
 		}
 		try {
+			// 비즈니스 로직 및 에러처리는 알지 못함 -> 쓰는 곳에서 try catch
 			return await action();
 		} finally {
 			await this.releaseLock(key);

@@ -1,4 +1,3 @@
-import { PrismaTransactionalClient } from '@nestjs-cls/transactional-adapter-prisma';
 import { UserPoint } from '../models/user-point';
 
 export interface IUserPointRepository {

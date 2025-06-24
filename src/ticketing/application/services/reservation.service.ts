@@ -4,9 +4,10 @@ import { ConflictException, Inject, Injectable, Logger } from '@nestjs/common';
 import { IDistributedLockService } from 'src/common/interfaces/idistributed-lock.service';
 import {
 	DISTRIBUTED_LOCK_SERVICE,
+	SEAT_EXPIRE_TTL,
 	SEAT_LOCK_TTL,
 } from 'src/common/utils/constants';
-import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
+import { EXPIRE_QUEUE_NAME, getSeatLockKey } from 'src/common/utils/redis-keys';
 import { PaymentService } from 'src/payment/application/services/payment.service';
 import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
 import {
@@ -67,7 +68,7 @@ export class ReservationService {
 		let paymentToken: string;
 		try {
 			newReservation = await this.distributedLockService.withLock<Reservation>(
-				seatId.toString(),
+				getSeatLockKey(seatId),
 				SEAT_LOCK_TTL,
 				async () => {
 					return await this._reserveWithOptimisticLock(seat, reservation);
@@ -94,7 +95,7 @@ export class ReservationService {
 				lockToken: queueToken, // 잠금 해제시 필요
 			},
 			{
-				delay: SEAT_LOCK_TTL * 1000, // 5분 지연!!
+				delay: SEAT_EXPIRE_TTL * 1000, // 5분 지연!!
 			},
 		);
 

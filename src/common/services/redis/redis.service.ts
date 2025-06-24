@@ -1,6 +1,7 @@
 import {
 	Inject,
 	Injectable,
+	Logger,
 	OnApplicationShutdown,
 	OnModuleDestroy,
 } from '@nestjs/common';
@@ -9,6 +10,8 @@ import { REDIS_CLIENT } from 'src/common/utils/constants';
 
 @Injectable()
 export class RedisService implements OnApplicationShutdown {
+	private readonly logger = new Logger(RedisService.name);
+
 	constructor(@Inject(REDIS_CLIENT) readonly client: Redis) {}
 
 	async onApplicationShutdown(): Promise<void> {
@@ -16,7 +19,7 @@ export class RedisService implements OnApplicationShutdown {
 
 		if (this.client.status !== 'end') {
 			await this.client.quit().catch((err) => {
-				console.log('RedisService OnDestroy Error', err);
+				this.logger.error('RedisService OnDestroy Error', err);
 			});
 		}
 
@@ -46,11 +49,12 @@ export class RedisService implements OnApplicationShutdown {
 			}
 
 			if (result !== 'OK') {
-				throw new Error(`Failed to set key: ${key}`);
+				this.logger.error(`Failed to set key: ${key}`);
+				return false;
 			}
 			return true;
 		} catch (error) {
-			console.error(`Failed to set key: ${key}`, error);
+			this.logger.error(`Failed to set key: ${key}`, error);
 			return false;
 		}
 	}
