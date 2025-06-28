@@ -5,3 +5,4 @@
 - [시퀀스 다이어그램](docs/sequence_diagram.md)
 - [ERD](docs/erd.md)
 - [인프라 구성도](docs/infra_diagram.md)
+- [동시성 제어 보고서](docs/concurrency.md)

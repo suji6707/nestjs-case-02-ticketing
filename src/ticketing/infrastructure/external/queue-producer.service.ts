@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { OnModuleDestroy } from '@nestjs/common';
-import { Job, JobsOptions, Queue } from 'bullmq';
+import { Job, JobState, JobsOptions, Queue } from 'bullmq';
 import IORedis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 
@@ -61,5 +61,10 @@ export class QueueProducer implements OnModuleDestroy {
 			throw new Error(`Job ${jobId} not found in queue ${queueName}`);
 		}
 		return job;
+	}
+
+	async getJobsByStatus(queueName: string, status: JobState): Promise<Job[]> {
+		const queue = this.getOrCreateQueue(queueName);
+		return queue.getJobs(status);
 	}
 }
