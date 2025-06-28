@@ -20,6 +20,20 @@ export class EventSearchService {
 		return this.concertRepository.findConcerts();
 	}
 
+	// @@@TODO: 잘 변하지 않고 자주 읽어야하는 데이터: 애플리케이션 캐시
+	// @@@TODO: 좌석 hset 할 때 데이터 분리? seatId에 대한 status는 external cache, 클래스/넘버/price는 내부 캐시로.
+	/**
+    // 2. Redis와 DB 동시 업데이트 (Write-Through)
+    await Promise.all([
+      // Redis에 대기열 추가
+      redis.zadd(queueKey, score, userId),
+      redis.hset(userQueueKey, {
+        concertId,
+        joinedAt: timestamp,
+        status: 'waiting'
+      }),
+    ]);
+	 */
 	async getSchedules(
 		userId: number,
 		concertId: number,

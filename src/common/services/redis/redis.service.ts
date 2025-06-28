@@ -3,10 +3,25 @@ import {
 	Injectable,
 	Logger,
 	OnApplicationShutdown,
-	OnModuleDestroy,
 } from '@nestjs/common';
 import { Redis } from 'ioredis';
 import { REDIS_CLIENT } from 'src/common/utils/constants';
+import {
+	convertMapToArray,
+	convertObjectToArray,
+} from 'src/common/utils/converter';
+
+Redis.Command.setArgumentTransformer('hset', (args) => {
+	if (args.length === 2) {
+		if (args[1] instanceof Map) {
+			return [args[0], ...convertMapToArray(args[1])];
+		}
+		if (args[1] instanceof Object) {
+			return [args[0], ...convertObjectToArray(args[1])];
+		}
+	}
+	return args;
+});
 
 @Injectable()
 export class RedisService implements OnApplicationShutdown {
@@ -59,8 +74,55 @@ export class RedisService implements OnApplicationShutdown {
 		}
 	}
 
+	async hset(
+		key: string,
+		data: Map<string | number, any> | Record<string | number, any>,
+		ttl?: number,
+	): Promise<boolean> {
+		try {
+			const stringifiedValue = new Map<string | number, string>();
+			const entries =
+				data instanceof Map ? data.entries() : Object.entries(data);
+
+			for (const [field, value] of entries) {
+				const stringValue =
+					typeof value === 'object' && value !== null
+						? JSON.stringify(value)
+						: String(value);
+				stringifiedValue.set(field, stringValue);
+			}
+
+			const result = await this.client.hset(key, stringifiedValue);
+			if (result === 0) {
+				this.logger.error(`Failed to set key: ${key}`);
+				return false;
+			}
+			if (ttl) {
+				await this.client.expire(key, ttl);
+			}
+			return true;
+		} catch (error) {
+			this.logger.error(`Failed to set key: ${key}`, error);
+			return false;
+		}
+	}
+
 	async get(key: string): Promise<string | null> {
 		return this.client.get(key);
+	}
+
+	async hgetall(key: string): Promise<Record<string, any>> {
+		try {
+			const result = await this.client.hgetall(key);
+			const parsedResult: Record<string, any> = {};
+			for (const [field, value] of Object.entries(result)) {
+				parsedResult[field] = JSON.parse(value);
+			}
+			return parsedResult;
+		} catch (error) {
+			this.logger.error(`Failed to get key: ${key}`, error);
+			return null;
+		}
 	}
 
 	async delete(...keys: string[]): Promise<boolean> {
