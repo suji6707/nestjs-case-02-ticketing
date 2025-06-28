@@ -1,9 +1,19 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { RedisService } from 'src/common/services/redis/redis.service';
+import {
+	SCHEDULES_CACHE_TTL,
+	SEATS_CACHE_TTL,
+} from 'src/common/utils/constants';
+import {
+	getSchedulesCacheKey,
+	getSeatsCacheKey,
+} from 'src/common/utils/redis-keys';
 import {
 	ConcertSchduleResponseDto,
 	ConcertSeatResponseDto,
 } from '../../controllers/dtos/response.dto';
 import { Concert } from '../domain/models/concert';
+import { Seat } from '../domain/models/seat';
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 import { ITokenService } from './interfaces/itoken.service';
 
@@ -14,26 +24,13 @@ export class EventSearchService {
 		private readonly concertRepository: IConcertRepository,
 		@Inject('QueueTokenService')
 		private readonly tokenService: ITokenService,
+		private readonly redisService: RedisService,
 	) {}
 
 	async getConcerts(): Promise<Concert[]> {
 		return this.concertRepository.findConcerts();
 	}
 
-	// @@@TODO: 잘 변하지 않고 자주 읽어야하는 데이터: 애플리케이션 캐시
-	// @@@TODO: 좌석 hset 할 때 데이터 분리? seatId에 대한 status는 external cache, 클래스/넘버/price는 내부 캐시로.
-	/**
-    // 2. Redis와 DB 동시 업데이트 (Write-Through)
-    await Promise.all([
-      // Redis에 대기열 추가
-      redis.zadd(queueKey, score, userId),
-      redis.hset(userQueueKey, {
-        concertId,
-        joinedAt: timestamp,
-        status: 'waiting'
-      }),
-    ]);
-	 */
 	async getSchedules(
 		userId: number,
 		concertId: number,
@@ -47,15 +44,30 @@ export class EventSearchService {
 			throw new BadRequestException('Invalid token');
 		}
 
+		// internal cache
+		const cacheKey = getSchedulesCacheKey(concertId);
+		const cached = await this.redisService.get(cacheKey);
+		console.log('cached', cached);
+		if (cached) {
+			return {
+				schedules: cached,
+			};
+		}
+
 		const schedules = await this.concertRepository.findSchedules(concertId);
+		const result = schedules.map((schedule) => ({
+			id: schedule.id,
+			basePrice: schedule.basePrice,
+			startTime: schedule.startAt,
+			endTime: schedule.endAt,
+			isSoldOut: schedule.isSoldOut,
+		}));
+
+		// set cache
+		await this.redisService.set(cacheKey, result, SCHEDULES_CACHE_TTL);
+
 		return {
-			schedules: schedules.map((schedule) => ({
-				id: schedule.id,
-				basePrice: schedule.basePrice,
-				startTime: schedule.startAt,
-				endTime: schedule.endAt,
-				isSoldOut: schedule.isSoldOut,
-			})),
+			schedules: result,
 		};
 	}
 
@@ -72,15 +84,38 @@ export class EventSearchService {
 			throw new BadRequestException('Invalid token');
 		}
 
+		const cacheKey = getSeatsCacheKey(scheduleId);
+		const cached = await this.redisService.hgetall(cacheKey);
+		console.log('cached', cached);
+		if (cached) {
+			return {
+				seats: cached,
+			};
+		}
+
 		const seats = await this.concertRepository.findSeats(scheduleId);
-		return {
-			seats: seats.map((seat) => ({
-				id: seat.id,
+		const seatMap = new Map<
+			number,
+			{ number: number; className: string; price: number; status: number }
+		>();
+		for (const seat of seats) {
+			seatMap.set(Number(seat.id), {
 				number: seat.number,
 				className: seat.className,
 				price: seat.price,
 				status: seat.status,
-			})),
+			});
+		}
+
+		// set cache
+		await this.redisService.hset(
+			getSeatsCacheKey(scheduleId),
+			seatMap,
+			SEATS_CACHE_TTL,
+		);
+
+		return {
+			seats: Object.fromEntries(seatMap),
 		};
 	}
 }

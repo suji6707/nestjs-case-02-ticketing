@@ -15,6 +15,10 @@ export const PAYMENT_EXPIRE_TTL = 300; // 결제 요청 대기시간 5min
 export const PAYMENT_LOCK_TTL = 3; // 3sec - 너무 짧으면 트랜잭션 커밋 전에 해제됨
 export const SEAT_LOCK_TTL = 3; // 3sec
 
+// ======================= for cache =======================
+export const SCHEDULES_CACHE_TTL = 60 * 60; // 1h
+export const SEATS_CACHE_TTL = 60 * 60; // 1h
+
 // ======================= for test =======================
 export const AUTH_TOKEN_TTL = '7d';
 // export const SEAT_EXPIRE_TTL = 3 + 1; //

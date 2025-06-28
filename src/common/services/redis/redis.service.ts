@@ -47,20 +47,23 @@ export class RedisService implements OnApplicationShutdown {
 
 	async set(
 		key: string,
-		value: string,
+		value: any,
 		ttl?: number,
 		nx?: boolean,
 	): Promise<boolean> {
 		try {
+			const valueStr =
+				typeof value === 'object' ? JSON.stringify(value) : value;
+
 			let result: string;
 			if (ttl && nx) {
-				result = await this.client.set(key, value, 'EX', ttl, 'NX');
+				result = await this.client.set(key, valueStr, 'EX', ttl, 'NX');
 			} else if (ttl) {
-				result = await this.client.set(key, value, 'EX', ttl);
+				result = await this.client.set(key, valueStr, 'EX', ttl);
 			} else if (nx) {
-				result = await this.client.set(key, value, 'NX');
+				result = await this.client.set(key, valueStr, 'NX');
 			} else {
-				result = await this.client.set(key, value);
+				result = await this.client.set(key, valueStr);
 			}
 
 			if (result !== 'OK') {
@@ -107,16 +110,34 @@ export class RedisService implements OnApplicationShutdown {
 		}
 	}
 
-	async get(key: string): Promise<string | null> {
-		return this.client.get(key);
+	private _parseValue(value: string): any {
+		try {
+			return JSON.parse(value);
+		} catch (error) {
+			// not an object
+			return value;
+		}
+	}
+
+	async get(key: string): Promise<any> {
+		const result = await this.client.get(key);
+		if (!result) {
+			this.logger.warn(`Cache MISS: ${key}`);
+			return null;
+		}
+		return this._parseValue(result);
 	}
 
 	async hgetall(key: string): Promise<Record<string, any>> {
 		try {
 			const result = await this.client.hgetall(key);
+			if (Object.keys(result).length === 0) {
+				this.logger.warn(`Cache MISS: ${key}`);
+				return null;
+			}
 			const parsedResult: Record<string, any> = {};
 			for (const [field, value] of Object.entries(result)) {
-				parsedResult[field] = JSON.parse(value);
+				parsedResult[field] = this._parseValue(value);
 			}
 			return parsedResult;
 		} catch (error) {
