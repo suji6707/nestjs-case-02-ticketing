@@ -1,10 +1,18 @@
-import { Controller, Inject, Req } from '@nestjs/common';
+import {
+	Controller,
+	Get,
+	Inject,
+	Param,
+	ParseIntPipe,
+	Req,
+} from '@nestjs/common';
 import { Post } from '@nestjs/common';
 import { Body } from '@nestjs/common';
 import { UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation } from '@nestjs/swagger';
 import { Request } from 'express';
 import { AuthGuard } from '../../auth/application/services/auth.guard';
+import { Reservation } from '../application/domain/models/reservation';
 import { ITokenService } from '../application/services/interfaces/itoken.service';
 import { ReservationService } from '../application/services/reservation.service';
 import {
@@ -79,5 +87,16 @@ export class ReservationController {
 	}
 
 	// 예약 현황 조회
-	// GET /history
+	@Get('/:reservationId')
+	@ApiOperation({ summary: '예약 현황 조회' })
+	@ApiOkResponse({
+		type: ReserveResponseDto,
+		description: '예약 현황 조회 성공',
+	})
+	async history(
+		@Req() req: Request,
+		@Param('reservationId', ParseIntPipe) reservationId: number,
+	): Promise<optional<Reservation>> {
+		return this.reservationService.getInfo(reservationId);
+	}
 }

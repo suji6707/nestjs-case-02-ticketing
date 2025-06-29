@@ -81,7 +81,6 @@ model SeatEntity {
   id         Int                   @id @default(autoincrement())
   scheduleId Int                   @map("schedule_id")
   schedule   ConcertScheduleEntity @relation(fields: [scheduleId], references: [id])
-  number     Int
   className  String                @map("class_name")
   price      Int
   status     Int                   @db.TinyInt

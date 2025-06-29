@@ -1,9 +1,19 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { RedisService } from 'src/common/services/redis/redis.service';
+import {
+	SCHEDULES_CACHE_TTL,
+	SEATS_CACHE_TTL,
+} from 'src/common/utils/constants';
+import {
+	getSchedulesCacheKey,
+	getSeatsCacheKey,
+} from 'src/common/utils/redis-keys';
 import {
 	ConcertSchduleResponseDto,
 	ConcertSeatResponseDto,
 } from '../../controllers/dtos/response.dto';
 import { Concert } from '../domain/models/concert';
+import { Seat } from '../domain/models/seat';
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 import { ITokenService } from './interfaces/itoken.service';
 
@@ -14,6 +24,7 @@ export class EventSearchService {
 		private readonly concertRepository: IConcertRepository,
 		@Inject('QueueTokenService')
 		private readonly tokenService: ITokenService,
+		private readonly redisService: RedisService,
 	) {}
 
 	async getConcerts(): Promise<Concert[]> {
@@ -33,15 +44,29 @@ export class EventSearchService {
 			throw new BadRequestException('Invalid token');
 		}
 
+		// internal cache
+		const cacheKey = getSchedulesCacheKey(concertId);
+		const cached = await this.redisService.get(cacheKey);
+		if (cached) {
+			return {
+				schedules: cached,
+			};
+		}
+
 		const schedules = await this.concertRepository.findSchedules(concertId);
+		const result = schedules.map((schedule) => ({
+			id: schedule.id,
+			basePrice: schedule.basePrice,
+			startTime: schedule.startAt,
+			endTime: schedule.endAt,
+			isSoldOut: schedule.isSoldOut,
+		}));
+
+		// set cache
+		await this.redisService.set(cacheKey, result, SCHEDULES_CACHE_TTL);
+
 		return {
-			schedules: schedules.map((schedule) => ({
-				id: schedule.id,
-				basePrice: schedule.basePrice,
-				startTime: schedule.startAt,
-				endTime: schedule.endAt,
-				isSoldOut: schedule.isSoldOut,
-			})),
+			schedules: result,
 		};
 	}
 
@@ -58,15 +83,36 @@ export class EventSearchService {
 			throw new BadRequestException('Invalid token');
 		}
 
+		const cacheKey = getSeatsCacheKey(scheduleId);
+		const cached = await this.redisService.hgetall(cacheKey);
+		if (cached) {
+			return {
+				seats: cached,
+			};
+		}
+
 		const seats = await this.concertRepository.findSeats(scheduleId);
-		return {
-			seats: seats.map((seat) => ({
-				id: seat.id,
-				number: seat.number,
+		const seatMap = new Map<
+			number,
+			{ className: string; price: number; status: number }
+		>();
+		for (const seat of seats) {
+			seatMap.set(Number(seat.id), {
 				className: seat.className,
 				price: seat.price,
 				status: seat.status,
-			})),
+			});
+		}
+
+		// set cache
+		await this.redisService.hset(
+			getSeatsCacheKey(scheduleId),
+			seatMap,
+			SEATS_CACHE_TTL,
+		);
+
+		return {
+			seats: Object.fromEntries(seatMap),
 		};
 	}
 }

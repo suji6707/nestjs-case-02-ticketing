@@ -61,7 +61,6 @@ CREATE TABLE `concert_schedules` (
 CREATE TABLE `seats` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
     `schedule_id` INTEGER NOT NULL,
-    `number` INTEGER NOT NULL,
     `class_name` VARCHAR(191) NOT NULL,
     `price` INTEGER NOT NULL,
     `status` TINYINT NOT NULL,

@@ -7,7 +7,6 @@ export enum SeatStatus {
 export class Seat {
 	id?: optional<number>;
 	scheduleId: number;
-	number: number;
 	className: string;
 	price: number;
 	status: SeatStatus;
@@ -15,21 +14,18 @@ export class Seat {
 	constructor({
 		id,
 		scheduleId,
-		number,
 		className,
 		price,
 		status,
 	}: {
 		id?: optional<number>;
 		scheduleId: number;
-		number: number;
 		className: string;
 		price: number;
 		status: SeatStatus;
 	}) {
 		if (id) this.id = id;
 		this.scheduleId = scheduleId;
-		this.number = number;
 		this.className = className;
 		this.price = price;
 		this.status = status;

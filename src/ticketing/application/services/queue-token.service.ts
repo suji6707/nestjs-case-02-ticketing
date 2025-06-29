@@ -52,7 +52,7 @@ export class QueueTokenService implements ITokenService {
 
 		const job = await this.queueProducer.addJob(getQueueName(concertId), {
 			token,
-		});
+		}); // TODO: 같은 캐시키로 합치기
 		const jobCacheKey = getQueueTokenJobIdKey(token);
 		await this.redisService.set(jobCacheKey, job.id, QUEUE_TOKEN_TTL);
 

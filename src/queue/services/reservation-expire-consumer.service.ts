@@ -8,7 +8,6 @@ import {
 	OnModuleDestroy,
 } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
-import IORedis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { EXPIRE_QUEUE_NAME } from 'src/common/utils/redis-keys';
 import { ReservationStatus } from 'src/ticketing/application/domain/models/reservation';

@@ -5,7 +5,6 @@ import {
 	OnModuleDestroy,
 } from '@nestjs/common';
 import { Job, Worker } from 'bullmq';
-import IORedis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { RESERVATION_SESSION_TTL } from 'src/common/utils/constants';
 import { getQueueTokenKey } from 'src/common/utils/redis-keys';

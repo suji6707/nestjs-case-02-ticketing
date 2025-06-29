@@ -38,3 +38,5 @@ lerna-debug.log*
 .env
 
 /generated/prisma
+
+docs/cache-strategy.md

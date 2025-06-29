@@ -50,7 +50,6 @@ export class TestDataFactory {
 	): Promise<Seat> {
 		const seat = new Seat({
 			scheduleId,
-			number: 50,
 			className: 'A1',
 			price: 10000,
 			status: SeatStatus.AVAILABLE,

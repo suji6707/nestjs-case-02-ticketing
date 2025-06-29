@@ -131,13 +131,7 @@ export class ConcertSchduleResponseDto {
 }
 
 export class ConcertSeatItem {
-	@ApiProperty({ example: 1, description: '좌석 ID' })
-	id: number;
-
-	@ApiProperty({ example: 1, description: '좌석 번호' })
-	number: number;
-
-	@ApiProperty({ example: 'A', description: '좌석 등급' })
+	@ApiProperty({ example: 'A1', description: '좌석 등급' })
 	className: string;
 
 	@ApiProperty({ example: 10000, description: '좌석 가격' })
@@ -151,22 +145,19 @@ export class ConcertSeatResponseDto {
 	@ApiProperty({
 		type: [ConcertSeatItem],
 		description: '예약 가능한 콘서트 좌석 리스트',
-		example: [
-			{
+		example: {
+			1: {
 				id: 1,
-				number: 1,
-				className: 'A',
+				className: 'A1',
 				price: 10000,
 				status: 0,
 			},
-			{
-				id: 2,
-				number: 2,
-				className: 'B',
+			2: {
+				className: 'A2',
 				price: 20000,
 				status: 0,
 			},
-		],
+		},
 	})
-	seats: ConcertSeatItem[];
+	seats: Record<number, ConcertSeatItem>;
 }
