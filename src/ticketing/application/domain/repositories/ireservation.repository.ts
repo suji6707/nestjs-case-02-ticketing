@@ -10,8 +10,8 @@ export interface IReservationRepository {
 		props: ReservationProps,
 		tx?: PrismaTransactionalClient,
 	): Promise<Reservation>;
-	findOne(id: number): Promise<Reservation>;
-	findAll(): Promise<Reservation[]>;
+	findOne(reservationId: number): Promise<Reservation>;
+	findAll(userId: number): Promise<Reservation[]>;
 	selectForUpdate(id: number): Promise<optional<Reservation>>;
 	update(
 		reservation: Reservation,

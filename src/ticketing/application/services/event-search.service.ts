@@ -47,7 +47,6 @@ export class EventSearchService {
 		// internal cache
 		const cacheKey = getSchedulesCacheKey(concertId);
 		const cached = await this.redisService.get(cacheKey);
-		console.log('cached', cached);
 		if (cached) {
 			return {
 				schedules: cached,
@@ -86,7 +85,6 @@ export class EventSearchService {
 
 		const cacheKey = getSeatsCacheKey(scheduleId);
 		const cached = await this.redisService.hgetall(cacheKey);
-		console.log('cached', cached);
 		if (cached) {
 			return {
 				seats: cached,
@@ -96,11 +94,10 @@ export class EventSearchService {
 		const seats = await this.concertRepository.findSeats(scheduleId);
 		const seatMap = new Map<
 			number,
-			{ number: number; className: string; price: number; status: number }
+			{ className: string; price: number; status: number }
 		>();
 		for (const seat of seats) {
 			seatMap.set(Number(seat.id), {
-				number: seat.number,
 				className: seat.className,
 				price: seat.price,
 				status: seat.status,

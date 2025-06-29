@@ -67,13 +67,12 @@ export class RedisService implements OnApplicationShutdown {
 			}
 
 			if (result !== 'OK') {
-				this.logger.error(`Failed to set key: ${key}`);
-				return false;
+				throw new Error(`Failed to set key: ${key}`);
 			}
 			return true;
 		} catch (error) {
-			this.logger.error(`Failed to set key: ${key}`, error);
-			return false;
+			this.logger.error(error);
+			throw new Error(`Failed to set key: ${key}`);
 		}
 	}
 
@@ -97,17 +96,45 @@ export class RedisService implements OnApplicationShutdown {
 
 			const result = await this.client.hset(key, stringifiedValue);
 			if (result === 0) {
-				this.logger.error(`Failed to set key: ${key}`);
-				return false;
+				throw new Error(`Failed to set key: ${key}`);
 			}
 			if (ttl) {
 				await this.client.expire(key, ttl);
 			}
 			return true;
 		} catch (error) {
-			this.logger.error(`Failed to set key: ${key}`, error);
-			return false;
+			this.logger.error(error);
+			throw new Error(`Failed to set key: ${key}`);
 		}
+	}
+
+	async hsetField(key: string, obj: Record<string, any>): Promise<boolean> {
+		try {
+			const result = await this.client.hset(
+				key,
+				this._buildHsetQuery(key, obj),
+			);
+			if (result === 0) {
+				throw new Error(`Failed to set key: ${key}`);
+			}
+			return true;
+		} catch (error) {
+			this.logger.error(error);
+			throw new Error(`Failed to set key: ${key}`);
+		}
+	}
+
+	_buildHsetQuery(key: string, obj: Record<string, any>): string[] {
+		const pairs = Object.entries(obj).map(([field, value]) => {
+			const stringValue =
+				typeof value === 'object' && value !== null
+					? JSON.stringify(value)
+					: String(value);
+			return [field, stringValue];
+		});
+		const query = pairs.flat();
+		query.unshift(key);
+		return query;
 	}
 
 	private _parseValue(value: string): any {

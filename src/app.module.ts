@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module } from '@nestjs/common';
 import { APP_FILTER } from '@nestjs/core';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
+import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { HttpExceptionFilter } from './common/services/exception.filter';
 import { PaymentModule } from './payment/payment.module';
 import { QueueModule } from './queue/queue.module';
@@ -23,4 +24,8 @@ import { TicketingModule } from './ticketing/ticketing.module';
 		},
 	],
 })
-export class AppModule {}
+export class AppModule {
+	configure(consumer: MiddlewareConsumer): void {
+		consumer.apply(LoggerMiddleware).forRoutes('*');
+	}
+}

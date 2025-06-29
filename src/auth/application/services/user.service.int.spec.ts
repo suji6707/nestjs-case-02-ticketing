@@ -22,7 +22,7 @@ describe('UserService Integration Test', () => {
 
 	it('email, password를 넣으면 DB에 유저를 저장한다', async () => {
 		const email = `test_${new Date().getTime()}@example.com`;
-		const password = 'test_password';
+		const password = 'test-password';
 		const { token } = await userService.signUp(email, password);
 		console.log(token);
 		expect(token).toBeDefined();

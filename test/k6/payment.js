@@ -97,12 +97,3 @@ export function teardown(data) {
 		},
 	);
 }
-
-/**
- * k6 기본:
- * - 스케줄 조회 하나 하려면 auth token, 대기열 토큰 둘 다 있어야함.
- * 	-> auth token: 유저 10명 만들어서(db insert prisma seed 만들어두자.) token 발급, 하드코딩해놓기.
- * 	-> queue token은 매번 새롭게 발급하는게 나을듯?
- * 추후: docker로 설정해서 로컬환경에 맞는 mock db 사용
- *
- */

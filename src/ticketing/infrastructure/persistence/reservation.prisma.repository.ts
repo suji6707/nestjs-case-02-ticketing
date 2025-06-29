@@ -24,10 +24,10 @@ export class ReservationPrismaRepository implements IReservationRepository {
 		return new Reservation(entity);
 	}
 
-	async findOne(id: number): Promise<optional<Reservation>> {
+	async findOne(reservationId: number): Promise<optional<Reservation>> {
 		const entity = await this.txHost.tx.reservationEntity.findUnique({
 			where: {
-				id,
+				id: reservationId,
 			},
 		});
 		if (!entity) {
@@ -36,8 +36,15 @@ export class ReservationPrismaRepository implements IReservationRepository {
 		return new Reservation(entity);
 	}
 
-	async findAll(): Promise<Reservation[]> {
-		const entities = await this.txHost.tx.reservationEntity.findMany();
+	async findAll(userId: number): Promise<Reservation[]> {
+		const entities = await this.txHost.tx.reservationEntity.findMany({
+			where: {
+				userId,
+			},
+			orderBy: {
+				id: 'desc',
+			},
+		});
 		return entities.map((entity) => new Reservation(entity));
 	}
 

@@ -23,8 +23,7 @@ describe('RedisService', () => {
 		[
 			1,
 			{
-				number: 1,
-				className: 'A',
+				className: 'A1',
 				status: SeatStatus.AVAILABLE,
 				price: 10000,
 			},
@@ -32,8 +31,7 @@ describe('RedisService', () => {
 		[
 			2,
 			{
-				number: 2,
-				className: 'A',
+				className: 'A2',
 				status: SeatStatus.AVAILABLE,
 				price: 10000,
 			},
@@ -41,8 +39,7 @@ describe('RedisService', () => {
 		[
 			3,
 			{
-				number: 1,
-				className: 'B',
+				className: 'B1',
 				status: SeatStatus.AVAILABLE,
 				price: 10000,
 			},
@@ -50,18 +47,18 @@ describe('RedisService', () => {
 		[
 			4,
 			{
-				number: 1,
-				className: 'B',
+				className: 'B2',
 				status: SeatStatus.AVAILABLE,
 				price: 10000,
 			},
 		],
 	]);
 
-	describe('set', () => {
-		it('hmset', async () => {
+	const scheduleId = 4;
+
+	describe('hashmap', () => {
+		it('hset', async () => {
 			// given
-			const scheduleId = 1;
 			const key = `schedule:${scheduleId}:seats`;
 			const value = allSeats;
 
@@ -73,12 +70,9 @@ describe('RedisService', () => {
 			// then
 			expect(result).toBe(true);
 		});
-	});
 
-	describe('get', () => {
-		it('hmget', async () => {
+		it('hgetall', async () => {
 			// given
-			const scheduleId = 1;
 			const key = `schedule:${scheduleId}:seats`;
 			const value = allSeats;
 
@@ -89,6 +83,35 @@ describe('RedisService', () => {
 			// then
 			const expectedValue = value.get(1);
 			expect(result['1']).toEqual(expectedValue);
+		});
+
+		it('_buildHsetQuery', async () => {
+			// given
+			const key = `schedule:${scheduleId}:seats`;
+			const obj = {
+				1: {
+					className: 'A1',
+					price: 150000,
+					status: SeatStatus.AVAILABLE,
+				},
+				12: {
+					className: 'B2',
+					price: 120000,
+					status: SeatStatus.AVAILABLE,
+				},
+			};
+
+			// when
+			const query = redisService._buildHsetQuery(key, obj);
+
+			// then
+			expect(query).toEqual([
+				key,
+				'1',
+				JSON.stringify(obj['1']),
+				'12',
+				JSON.stringify(obj['12']),
+			]);
 		});
 	});
 });
