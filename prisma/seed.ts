@@ -2,6 +2,21 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+async function refresh(): Promise<void> {
+	console.log('Deleting existing data...');
+	await prisma.reservationEntity.deleteMany({});
+	await prisma.seatEntity.deleteMany({});
+	await prisma.concertScheduleEntity.deleteMany({});
+	await prisma.concertEntity.deleteMany({});
+	console.log('Existing data deleted.');
+
+	// MySQL AUTO_INCREMENT 리셋
+	await prisma.$executeRaw`ALTER TABLE reservations AUTO_INCREMENT = 1;`;
+	await prisma.$executeRaw`ALTER TABLE seats AUTO_INCREMENT = 1;`;
+	await prisma.$executeRaw`ALTER TABLE concert_schedules AUTO_INCREMENT = 1;`;
+	await prisma.$executeRaw`ALTER TABLE concerts AUTO_INCREMENT = 1;`;
+}
+
 async function main(): Promise<void> {
 	await refresh();
 
@@ -43,13 +58,11 @@ async function main(): Promise<void> {
 		};
 
 		const seatsToCreate = [];
-		let seatNumber = 1;
 		for (const className of classes) {
 			for (let i = 0; i < 10; i++) {
 				seatsToCreate.push({
 					scheduleId: schedule.id,
-					number: seatNumber++,
-					className: className,
+					className: `${className}${i + 1}`,
 					price: prices[className],
 					status: 0, // 0: AVAILABLE, 1: RESERVED, 2: SOLD
 				});
@@ -65,15 +78,6 @@ async function main(): Promise<void> {
 	}
 }
 
-async function refresh(): Promise<void> {
-	console.log('Deleting existing data...');
-	await prisma.reservationEntity.deleteMany({});
-	await prisma.seatEntity.deleteMany({});
-	await prisma.concertScheduleEntity.deleteMany({});
-	await prisma.concertEntity.deleteMany({});
-	console.log('Existing data deleted.');
-}
-
 main()
 	.then(async () => {
 		await prisma.$disconnect();
@@ -83,3 +87,37 @@ main()
 		await prisma.$disconnect();
 		process.exit(1);
 	});
+
+// 유저플로우 따로. 미리 생성해둔후, k6에선 userId 1~50까지 login.
+async function createUsers(): Promise<void> {
+	await prisma.reservationEntity.deleteMany({});
+	await prisma.userPointEntity.deleteMany({});
+	await prisma.pointHistoryEntity.deleteMany({});
+	await prisma.userEntity.deleteMany({});
+
+	// MySQL AUTO_INCREMENT 리셋 - 각 테이블마다 별도 실행
+	await prisma.$executeRaw`ALTER TABLE users AUTO_INCREMENT = 1;`;
+	await prisma.$executeRaw`ALTER TABLE user_points AUTO_INCREMENT = 1;`;
+	await prisma.$executeRaw`ALTER TABLE point_histories AUTO_INCREMENT = 1;`;
+	await prisma.$executeRaw`ALTER TABLE reservations AUTO_INCREMENT = 1;`;
+
+	const numUser = 50;
+	for (let i = 0; i < numUser; i++) {
+		await prisma.userEntity.create({
+			data: {
+				email: `test_${i + 1}@example.com`,
+				encryptedPassword:
+					'$2b$10$MIv9WMWzzrT4TOnOwAxtDOJn/X8rP4QL5IjUQnGMjihszThyO6G5G', // test-password
+			},
+		});
+	}
+}
+
+// createUsers()
+// 	.catch((e) => {
+// 		console.error(e);
+// 		process.exit(1);
+// 	})
+// 	.finally(() => {
+// 		prisma.$disconnect();
+// 	});
