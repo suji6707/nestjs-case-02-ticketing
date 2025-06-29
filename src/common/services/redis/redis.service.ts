@@ -109,8 +109,19 @@ export class RedisService implements OnApplicationShutdown {
 		}
 	}
 
-	async hsetField(key: string, obj: Record<string, any>): Promise<boolean> {
+	async hsetField(
+		key: string,
+		obj: Record<string, any>,
+		onlyIfExist = true,
+	): Promise<boolean> {
 		try {
+			// 해시맵이 있을 때만 업데이트
+			if (onlyIfExist) {
+				const exists = await this.client.exists(key);
+				if (!exists) {
+					return false;
+				}
+			}
 			const query = this._buildHsetQuery(key, obj);
 			const result = await this.client.hset(query[0], ...query.slice(1));
 			if (result === 0) {
