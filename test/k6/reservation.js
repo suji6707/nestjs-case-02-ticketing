@@ -1,6 +1,6 @@
 import { check, sleep } from 'k6';
 import http from 'k6/http';
-import { Rate } from 'k6/metrics';
+import { Counter, Rate } from 'k6/metrics';
 
 /**
  * Reservation 성능테스트
@@ -11,13 +11,12 @@ export const options = {
 	vus: 50,
 	iterations: 50,
 	thresholds: {
-		// http_req_failed: ['rate<0.01'],
 		http_req_duration: ['p(95)<10000'],
-		login_success: ['rate>0.9'],
-		queue_token_success: ['rate>0.9'],
-		charge_success: ['rate>0.9'],
-		reserve_success: ['rate>=0.2'], // 1/50
-		confirm_success: ['rate>=0.2'], // 1/50
+		login_success: ['count==50'], // All 50 should succeed
+		queue_token_success: ['count==50'], // All 50 should succeed
+		charge_success: ['count==50'], // All 50 should succeed
+		reserve_success: ['count==1'], // Only 1 should succeed
+		confirm_success: ['count==1'], // Only 1 should succeed
 	},
 };
 
@@ -28,11 +27,11 @@ export function setup() {
 
 const BASE_URL = 'http://localhost:3001/api';
 
-const loginSucess = new Rate('login_success');
-const queueTokenSucess = new Rate('queue_token_success');
-const chargeSucess = new Rate('charge_success');
-const reserveSucess = new Rate('reserve_success');
-const confirmSucess = new Rate('confirm_success');
+const loginSucess = new Counter('login_success');
+const queueTokenSucess = new Counter('queue_token_success');
+const chargeSucess = new Counter('charge_success');
+const reserveSucess = new Counter('reserve_success');
+const confirmSucess = new Counter('confirm_success');
 
 export default function () {
 	const userId = __VU; // 현재 유저
@@ -106,7 +105,7 @@ export default function () {
 	const reserveCheck = check(res4, {
 		reserve_success: (r) => r.status === 201 && r.json().reservationId,
 	});
-	reserveSucess.add(1);
+	reserveSucess.add(reserveCheck);
 
 	const { reservationId, paymentToken } = JSON.parse(res4.body);
 	if (reservationId) {
@@ -118,7 +117,11 @@ export default function () {
 	global.reservations.push({ userId, reservationId });
 
 	// 결제 ============================================================
+	if (!reserveCheck) {
+		return; // 예약에 성공한 유저만 결제
+	}
 	const payload5 = JSON.stringify({
+		reservationId,
 		paymentToken,
 	});
 	const res5 = http.post(

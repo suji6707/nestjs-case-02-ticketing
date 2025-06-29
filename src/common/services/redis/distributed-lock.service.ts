@@ -33,7 +33,6 @@ export class DistributedLockService implements IDistributedLockService {
 			if (lockAcquired) {
 				break;
 			}
-			console.log('not acquiredLock');
 			await new Promise((resolve) => setTimeout(resolve, retryInterval));
 		}
 		if (!lockAcquired) {
