@@ -10,7 +10,9 @@ export class DistributedLockService implements IDistributedLockService {
 
 	async acquireLock(key: string, ttl: number): Promise<boolean> {
 		const cacheKey = `${this.lockPrefix}${key}`;
-		return await this.redisService.set(cacheKey, 'locked', ttl, true);
+		return await this.redisService
+			.set(cacheKey, 'locked', ttl, true)
+			.catch(() => false);
 	}
 
 	async releaseLock(key: string): Promise<boolean> {
@@ -31,6 +33,7 @@ export class DistributedLockService implements IDistributedLockService {
 			if (lockAcquired) {
 				break;
 			}
+			console.log('not acquiredLock');
 			await new Promise((resolve) => setTimeout(resolve, retryInterval));
 		}
 		if (!lockAcquired) {
@@ -40,8 +43,10 @@ export class DistributedLockService implements IDistributedLockService {
 		}
 		try {
 			// 비즈니스 로직 및 에러처리는 알지 못함 -> 쓰는 곳에서 try catch
+			console.log('acquireLock');
 			return await action();
 		} finally {
+			console.log('releaseLock');
 			await this.releaseLock(key);
 		}
 	}

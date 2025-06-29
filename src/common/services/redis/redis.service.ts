@@ -57,6 +57,7 @@ export class RedisService implements OnApplicationShutdown {
 
 			let result: string;
 			if (ttl && nx) {
+				// nx는 ttl 설정 안되는 경우 있음.. -> release 잘 처리해야
 				result = await this.client.set(key, valueStr, 'EX', ttl, 'NX');
 			} else if (ttl) {
 				result = await this.client.set(key, valueStr, 'EX', ttl);
@@ -172,6 +173,7 @@ export class RedisService implements OnApplicationShutdown {
 	}
 
 	async delete(...keys: string[]): Promise<boolean> {
+		console.log('delete keys', keys);
 		await this.client.del(...keys);
 		return true;
 	}
