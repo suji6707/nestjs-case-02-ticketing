@@ -142,38 +142,38 @@ export default function () {
 	}
 }
 
-export function teardown(data) {
-	console.log('teardown', data);
-	const authTokens = global.authTokens;
-	const reservations = global.reservations;
+// export function teardown(data) {
+// 	console.log('teardown', data);
+// 	const authTokens = global.authTokens;
+// 	const reservations = global.reservations;
 
-	console.log('authTokens', authTokens);
-	console.log('reservations', reservations);
+// 	console.log('authTokens', authTokens);
+// 	console.log('reservations', reservations);
 
-	let successCount = 0;
-	let failedCount = 0;
-	// 검증용 API
-	for (const { userId, reservationId } of reservations) {
-		const authToken = authTokens.find((token) => token.userId === userId);
-		const headers = {
-			headers: {
-				Authorization: `Bearer ${authToken.token}`,
-				'Content-Type': 'application/json',
-			},
-		};
-		const res = http.get(
-			`${BASE_URL}/ticketing/reservation/${reservationId}`,
-			headers,
-		);
-		const reservation = JSON.parse(res.body);
-		console.log('reservation', reservation.status);
+// 	let successCount = 0;
+// 	let failedCount = 0;
+// 	// 검증용 API
+// 	for (const { userId, reservationId } of reservations) {
+// 		const authToken = authTokens.find((token) => token.userId === userId);
+// 		const headers = {
+// 			headers: {
+// 				Authorization: `Bearer ${authToken.token}`,
+// 				'Content-Type': 'application/json',
+// 			},
+// 		};
+// 		const res = http.get(
+// 			`${BASE_URL}/ticketing/reservation/${reservationId}`,
+// 			headers,
+// 		);
+// 		const reservation = JSON.parse(res.body);
+// 		console.log('reservation', reservation.status);
 
-		if (reservation.status === 'CONFIRMED') {
-			successCount++;
-		} else {
-			failedCount++;
-		}
-	}
-	console.log('successCount', successCount);
-	console.log('failedCount', failedCount);
-}
+// 		if (reservation.status === 'CONFIRMED') {
+// 			successCount++;
+// 		} else {
+// 			failedCount++;
+// 		}
+// 	}
+// 	console.log('successCount', successCount);
+// 	console.log('failedCount', failedCount);
+// }

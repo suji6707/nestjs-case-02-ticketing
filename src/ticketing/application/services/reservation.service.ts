@@ -74,6 +74,10 @@ export class ReservationService {
 			let newReservation: Reservation;
 			let paymentToken: string;
 			try {
+				// newReservation = await this._reserveWithPessimisticLock(
+				// 	seat,
+				// 	reservation,
+				// );
 				newReservation =
 					await this.distributedLockService.withLock<Reservation>(
 						getSeatLockKey(seatId),
