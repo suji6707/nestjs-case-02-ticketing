@@ -36,11 +36,8 @@ export class ReservationPrismaRepository implements IReservationRepository {
 		return new Reservation(entity);
 	}
 
-	async findAll(userId: number): Promise<Reservation[]> {
+	async findAll(): Promise<Reservation[]> {
 		const entities = await this.txHost.tx.reservationEntity.findMany({
-			where: {
-				userId,
-			},
 			orderBy: {
 				id: 'desc',
 			},

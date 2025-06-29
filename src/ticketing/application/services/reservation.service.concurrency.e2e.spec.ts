@@ -34,7 +34,7 @@ describe('ReservationService E2E Test', () => {
 	// Worker
 	let reservationExpireConsumer: ReservationExpireConsumer;
 
-	const numUsers = 2;
+	const numUsers = 5;
 	const authTokens = [];
 	let concert: Concert;
 	let schedule: ConcertSchedule;

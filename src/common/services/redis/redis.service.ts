@@ -110,10 +110,8 @@ export class RedisService implements OnApplicationShutdown {
 
 	async hsetField(key: string, obj: Record<string, any>): Promise<boolean> {
 		try {
-			const result = await this.client.hset(
-				key,
-				this._buildHsetQuery(key, obj),
-			);
+			const query = this._buildHsetQuery(key, obj);
+			const result = await this.client.hset(query[0], ...query.slice(1));
 			if (result === 0) {
 				throw new Error(`Failed to set key: ${key}`);
 			}
