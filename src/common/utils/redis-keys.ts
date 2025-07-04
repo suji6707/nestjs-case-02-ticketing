@@ -1,3 +1,24 @@
+// sorted set 관련
+export const getDurationKey = (scheduleId: number): string => {
+	return `schedule:${scheduleId}`;
+};
+
+export const getFastSelloutRankingKey = (): string => {
+	return 'fast_sellout_ranking';
+};
+
+export const getSellingStartTimeKey = (scheduleId: number): string => {
+	return `selling_start_time:schedule:${scheduleId}`;
+};
+
+export const getTotalSeatsCountKey = (scheduleId: number): string => {
+	return `total_seats_count:schedule:${scheduleId}`;
+};
+
+export const getBookedCountKey = (scheduleId: number): string => {
+	return `booked_count:schedule:${scheduleId}`;
+};
+
 // 분산락 관련
 export const getSeatLockKey = (seatId: number): string => {
 	return `seat:${seatId}`;
