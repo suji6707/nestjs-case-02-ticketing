@@ -78,6 +78,7 @@ CREATE TABLE `reservations` (
     `status` TINYINT NOT NULL,
     `paid_at` DATETIME(3) NULL,
     `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
     INDEX `reservations_user_id_idx`(`user_id`),
     UNIQUE INDEX `reservations_seat_id_key`(`seat_id`),
