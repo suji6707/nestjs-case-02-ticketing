@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AppModule } from 'src/app.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
-import { REDIS_CLIENT, SEAT_LOCK_TTL } from 'src/common/utils/constants';
+import { REDIS_CLIENT, SEAT_EXPIRE_TTL } from 'src/common/utils/constants';
 import { initializeAndStartWorkers } from 'src/queue/main.worker';
 import { QueueConsumer } from 'src/queue/services/queue-consumer.service';
 import { ReservationExpireConsumer } from 'src/queue/services/reservation-expire-consumer.service';
@@ -34,7 +34,7 @@ describe('ReservationService E2E Test', () => {
 	// Worker
 	let reservationExpireConsumer: ReservationExpireConsumer;
 
-	const numUsers = 2;
+	const numUsers = 5;
 	const authTokens = [];
 	let concert: Concert;
 	let schedule: ConcertSchedule;
@@ -108,7 +108,8 @@ describe('ReservationService E2E Test', () => {
 		}
 	});
 
-	it('동시에 여러명이 같은 좌석을 예약해도 좌석은 한 명에게만 배정되어야 한다(with X-lock)', async () => {
+	// 동시성제어 옵션: 조건부 UPDATE, X-lock, 분산락
+	it('동시에 여러명이 같은 좌석을 예약해도 좌석은 한 명에게만 배정되어야 한다', async () => {
 		// given
 
 		// 대기열 진입
@@ -221,7 +222,7 @@ describe('ReservationService E2E Test', () => {
 		const { reservationId, paymentToken } = res.body;
 
 		// 배정 만료시간 지났다고 가정
-		// jest.advanceTimersByTime(SEAT_LOCK_TTL * 1000);
+		// jest.advanceTimersByTime(SEAT_EXPIRE_TTL * 1000);
 
 		// when
 

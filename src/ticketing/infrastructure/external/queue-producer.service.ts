@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { OnModuleDestroy } from '@nestjs/common';
 import { Job, JobState, JobsOptions, Queue } from 'bullmq';
-import IORedis from 'ioredis';
+import Redis from 'ioredis';
 import { RedisService } from 'src/common/services/redis/redis.service';
 
 @Injectable()
 export class QueueProducer implements OnModuleDestroy {
-	private readonly connection: IORedis;
+	private readonly connection: Redis;
 	private readonly queues = new Map<string, Queue>();
 
 	constructor(private readonly redisService: RedisService) {

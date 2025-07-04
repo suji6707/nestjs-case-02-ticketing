@@ -60,7 +60,7 @@ export class EventSearchController {
 	@Post('/schedules/:scheduleId/seats')
 	async getSeats(
 		@Req() req: Request,
-		@Param('scheduleId') scheduleId: number,
+		@Param('scheduleId', ParseIntPipe) scheduleId: number,
 		@Body() dto: ConcertSeatRequestDto,
 	): Promise<ConcertSeatResponseDto> {
 		const userId = req.userId;

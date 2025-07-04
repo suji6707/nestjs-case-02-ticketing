@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { RedisService } from 'src/common/services/redis/redis.service';
-import { SEAT_LOCK_TTL } from 'src/common/utils/constants';
+import { SEAT_EXPIRE_TTL } from 'src/common/utils/constants';
 
 @Injectable()
 export class SeatLockService {
@@ -20,7 +20,7 @@ export class SeatLockService {
 		const key = this._getLockKey(seatId);
 		// set value as queueToken
 		const result = await this.redisService
-			.set(key, queueToken, SEAT_LOCK_TTL, true)
+			.set(key, queueToken, SEAT_EXPIRE_TTL, true)
 			.catch(() => false);
 		return result;
 	}

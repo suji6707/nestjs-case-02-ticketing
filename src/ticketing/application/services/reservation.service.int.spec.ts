@@ -4,7 +4,7 @@ import { AuthModule } from 'src/auth/auth.module';
 import { CommonModule } from 'src/common/common.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
-import { REDIS_CLIENT, SEAT_LOCK_TTL } from 'src/common/utils/constants';
+import { REDIS_CLIENT, SEAT_EXPIRE_TTL } from 'src/common/utils/constants';
 import { PaymentService } from 'src/payment/application/services/payment.service';
 import { PaymentModule } from 'src/payment/payment.module';
 import { QueueModule } from 'src/queue/queue.module';
@@ -190,7 +190,7 @@ describe('ReservationService', () => {
 		);
 
 		// Fast-forward time by 5 minutes
-		jest.advanceTimersByTime(SEAT_LOCK_TTL * 1000);
+		jest.advanceTimersByTime(SEAT_EXPIRE_TTL * 1000);
 		await Promise.resolve();
 
 		// then

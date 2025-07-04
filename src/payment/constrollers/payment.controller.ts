@@ -34,4 +34,15 @@ export class PaymentController {
 		const userId = req.userId;
 		return this.paymentService.use(userId, body.amount);
 	}
+
+	@Get('/balance')
+	@ApiOperation({ summary: '포인트 잔액 조회' })
+	@ApiOkResponse({
+		type: PointUseResponseDto,
+		description: '포인트 잔액 조회 성공',
+	})
+	async getBalance(@Req() req: Request): Promise<PointUseResponseDto> {
+		const userId = req.userId;
+		return this.paymentService.getBalance(userId);
+	}
 }

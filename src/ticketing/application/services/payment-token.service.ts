@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { JwtService } from 'src/auth/application/services/jwt.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
-import { PAYMENT_TOKEN_TTL } from 'src/common/utils/constants';
+import { PAYMENT_EXPIRE_TTL } from 'src/common/utils/constants';
 import { getPaymentTokenKey } from 'src/common/utils/redis-keys';
 import { ITokenResponseDto } from 'src/ticketing/controllers/dtos/response.dto';
 import { TokenPurpose, TokenStatus } from '../domain/models/token';
@@ -32,13 +32,13 @@ export class PaymentTokenService implements ITokenService {
 
 		const token = await this.jwtService.signJwtAsync(
 			payload,
-			PAYMENT_TOKEN_TTL,
+			PAYMENT_EXPIRE_TTL,
 		);
 		const redisKey = getPaymentTokenKey(token);
 		await this.redisService.set(
 			redisKey,
 			TokenStatus.WAITING, // 결제 대기
-			PAYMENT_TOKEN_TTL,
+			PAYMENT_EXPIRE_TTL,
 		);
 		this.logger.log(
 			`Payment token created and stored in Redis for userId: ${userId}, seatId: ${seatId}`,
