@@ -45,6 +45,53 @@ export class RedisService implements OnApplicationShutdown {
 		return this.client;
 	}
 
+	// sorted set ============================================================
+	async zadd(key: string, score: number, member: string): Promise<number> {
+		return this.client.zadd(key, score, member);
+	}
+
+	async zrem(key: string, member: string): Promise<number> {
+		return this.client.zrem(key, member);
+	}
+
+	async zrange(
+		key: string,
+		start: number,
+		stop: number,
+		withScores?: boolean,
+	): Promise<string[]> {
+		const options: string[] = [];
+		if (withScores) {
+			options.push('WITHSCORES');
+		}
+		return this.client.zrange(key, start, stop, ...(options as any));
+	}
+
+	async increment(key: string): Promise<number> {
+		return this.client.incr(key);
+	}
+
+	async zcard(key: string): Promise<number> {
+		return this.client.zcard(key);
+	}
+
+	async zscore(key: string, member: string): Promise<number> {
+		const score = await this.client.zscore(key, member);
+		if (score === null) {
+			return -1;
+		}
+		return Number(score);
+	}
+
+	async zrank(key: string, member: string): Promise<number> {
+		const rank = await this.client.zrank(key, member);
+		if (rank === null) {
+			return -1;
+		}
+		return Number(rank);
+	}
+
+	// string ============================================================
 	async set(
 		key: string,
 		value: any,
@@ -55,18 +102,14 @@ export class RedisService implements OnApplicationShutdown {
 			const valueStr =
 				typeof value === 'object' ? JSON.stringify(value) : value;
 
-			let result: string;
-			if (ttl && nx) {
-				// nx는 ttl 설정 안되는 경우 있음.. -> release 잘 처리해야
-				result = await this.client.set(key, valueStr, 'EX', ttl, 'NX');
-			} else if (ttl) {
-				result = await this.client.set(key, valueStr, 'EX', ttl);
-			} else if (nx) {
-				result = await this.client.set(key, valueStr, 'NX');
-			} else {
-				result = await this.client.set(key, valueStr);
+			const options: string[] = [];
+			if (ttl) {
+				options.push('EX', ttl.toString());
 			}
-
+			if (nx) {
+				options.push('NX');
+			}
+			const result = await this.client.set(key, valueStr, ...(options as any));
 			if (result !== 'OK') {
 				throw new Error(`Failed to set key: ${key}`);
 			}
@@ -77,6 +120,7 @@ export class RedisService implements OnApplicationShutdown {
 		}
 	}
 
+	// hash map ============================================================
 	async hset(
 		key: string,
 		data: Map<string | number, any> | Record<string | number, any>,

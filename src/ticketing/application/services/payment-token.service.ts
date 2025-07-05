@@ -47,7 +47,11 @@ export class PaymentTokenService implements ITokenService {
 		return { token };
 	}
 
-	async verifyToken(userId: number, token: string): Promise<boolean> {
+	async verifyToken(
+		userId: number,
+		token: string,
+		neededStatus: TokenStatus,
+	): Promise<boolean> {
 		// check expired
 		const cacheKey = getPaymentTokenKey(token);
 		const tokenStatus = await this.redisService.get(cacheKey);
@@ -60,7 +64,7 @@ export class PaymentTokenService implements ITokenService {
 		if (
 			payload.userId !== userId ||
 			payload.purpose !== TokenPurpose.PAYMENT ||
-			tokenStatus !== TokenStatus.WAITING // 결제 대기
+			tokenStatus !== neededStatus // WAITING 임시결제토큰
 		) {
 			return false;
 		}

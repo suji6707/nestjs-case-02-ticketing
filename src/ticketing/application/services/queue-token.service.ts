@@ -9,11 +9,12 @@ import {
 } from 'src/common/utils/redis-keys';
 import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-producer.service';
 import { QueueTokenResponseDto } from '../../controllers/dtos/response.dto';
-import { TokenPurpose, TokenStatus } from '../domain/models/token';
+import { TokenStatus } from '../domain/models/token';
 import {
 	ICreateQueueTokenParams,
 	ITokenService,
 } from './interfaces/itoken.service';
+import { QueueRankingService } from './queue-ranking.service';
 
 @Injectable()
 export class QueueTokenService implements ITokenService {
@@ -23,6 +24,7 @@ export class QueueTokenService implements ITokenService {
 		private readonly redisService: RedisService,
 		private readonly jwtService: JwtService,
 		private readonly queueProducer: QueueProducer,
+		private readonly queueRankingService: QueueRankingService,
 	) {}
 
 	/**
@@ -36,16 +38,21 @@ export class QueueTokenService implements ITokenService {
 		const payload = {
 			userId,
 			concertId,
-			purpose: TokenPurpose.QUEUE_ENTRY,
+			// status: TokenStatus.WAITING, // sorted set 자체가 상태를 말해주므로 토큰에 정보 담을 필요없음.
 		};
 
 		const token = await this.jwtService.signJwtAsync(payload, QUEUE_TOKEN_TTL);
-		const cacheKey = getQueueTokenKey(token);
-		await this.redisService.set(
-			cacheKey,
-			TokenStatus.WAITING, // 대기열 대기
-			QUEUE_TOKEN_TTL,
-		);
+
+		// sorted set
+		await this.queueRankingService.addToWaitingQueue(token);
+
+		// const cacheKey = getQueueTokenKey(token);
+		// await this.redisService.set(
+		// 	cacheKey,
+		// 	TokenStatus.WAITING, // 대기열 대기
+		// 	QUEUE_TOKEN_TTL,
+		// );
+
 		this.logger.log(
 			`Queue token created and stored in Redis for userId: ${userId}, concertId: ${concertId}`,
 		);
@@ -59,24 +66,37 @@ export class QueueTokenService implements ITokenService {
 		return { token };
 	}
 
-	// TODO: 대기 순번 확인
-
-	async verifyToken(userId: number, token: string): Promise<boolean> {
+	async verifyToken(
+		userId: number,
+		token: string,
+		neededStatus: TokenStatus,
+	): Promise<boolean> {
 		// check expired
-		const cacheKey = getQueueTokenKey(token);
-		const tokenStatus = await this.redisService.get(cacheKey);
-		console.log('queueTokenStatus', tokenStatus);
-		if (!tokenStatus) {
+		// const cacheKey = getQueueTokenKey(token);
+		// const tokenStatus = await this.redisService.get(cacheKey);
+		// console.log('queueTokenStatus', tokenStatus);
+		// if (!tokenStatus) {
+		// 	return false;
+		// }
+
+		// check sorted set: waitingQueue에 있으면 true
+		const queueStatus = await this.queueRankingService.checkQueueStatus(token);
+		if (
+			neededStatus === TokenStatus.WAITING &&
+			queueStatus.waitingRank === -1
+		) {
+			return false;
+		}
+		if (
+			neededStatus === TokenStatus.PROCESSING &&
+			queueStatus.activeRemainTime === -1
+		) {
 			return false;
 		}
 
 		const payload = await this.jwtService.verifyJwtAsync(token);
 
-		if (
-			payload.userId !== userId ||
-			payload.purpose !== TokenPurpose.QUEUE_ENTRY ||
-			tokenStatus !== TokenStatus.PROCESSING // 대기열 통과(예약페이지 진입) 여부
-		) {
+		if (payload.userId !== userId) {
 			return false;
 		}
 
@@ -94,6 +114,7 @@ export class QueueTokenService implements ITokenService {
 		return true;
 	}
 
+	// no need
 	async checkAndUpdateTokenStatus(token: string): Promise<boolean> {
 		const isProcessing = await this._checkIsProcessing(token);
 		if (!isProcessing) {

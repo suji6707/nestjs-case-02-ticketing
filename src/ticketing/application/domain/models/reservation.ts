@@ -13,6 +13,7 @@ export interface ReservationProps {
 	status?: ReservationStatus;
 	paidAt?: optional<Date>;
 	createdAt?: optional<Date>;
+	updatedAt?: optional<Date>;
 }
 
 export class Reservation {
@@ -23,6 +24,7 @@ export class Reservation {
 	status: ReservationStatus;
 	paidAt: optional<Date>;
 	createdAt: optional<Date>;
+	updatedAt: optional<Date>;
 
 	constructor({
 		id,
@@ -40,6 +42,7 @@ export class Reservation {
 		this.purchasePrice = purchasePrice;
 		this.paidAt = paidAt; // nullable
 		this.createdAt = createdAt ?? new Date();
+		this.updatedAt = createdAt ?? new Date();
 	}
 
 	setConfirmed(): void {

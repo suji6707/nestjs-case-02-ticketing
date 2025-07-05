@@ -92,7 +92,11 @@ describe('QueueTokenService Integration Test', () => {
 			);
 
 			// when
-			const result = await queueTokenService.verifyToken(userId, queueToken);
+			const result = await queueTokenService.verifyToken(
+				userId,
+				queueToken,
+				TokenStatus.PROCESSING,
+			);
 
 			// then
 			expect(result).toBe(true);

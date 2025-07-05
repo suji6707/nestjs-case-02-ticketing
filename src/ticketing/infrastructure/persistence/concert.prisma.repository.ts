@@ -27,6 +27,26 @@ export class ConcertPrismaRepository implements IConcertRepository {
 		return entities.map((entity) => new ConcertSchedule(entity));
 	}
 
+	async findOneSchedule(scheduleId: number): Promise<ConcertSchedule> {
+		const entity = await this.txHost.tx.concertScheduleEntity.findUnique({
+			where: {
+				id: scheduleId,
+			},
+		});
+		return new ConcertSchedule(entity);
+	}
+
+	async findManySchedules(scheduleIds: number[]): Promise<ConcertSchedule[]> {
+		const entities = await this.txHost.tx.concertScheduleEntity.findMany({
+			where: {
+				id: {
+					in: scheduleIds,
+				},
+			},
+		});
+		return entities.map((entity) => new ConcertSchedule(entity));
+	}
+
 	async findSeats(scheduleId: number): Promise<Seat[]> {
 		const entities = await this.txHost.tx.seatEntity.findMany({
 			where: {

@@ -161,3 +161,29 @@ export class ConcertSeatResponseDto {
 	})
 	seats: Record<number, ConcertSeatItem>;
 }
+
+export class FastSelloutRankingItem {
+	scheduleId: number;
+	startTime: Date;
+	selloutTime: Date;
+	duration: number;
+	seatsCount: number;
+}
+
+// swagger로
+export class FastSelloutRankingResponseDto {
+	@ApiProperty({
+		type: [FastSelloutRankingItem],
+		description: '빠른 매진 랭킹 리스트',
+		example: [
+			{
+				scheduleId: 1,
+				startTime: new Date('2025-06-01T19:00:00.000Z'),
+				selloutTime: new Date('2025-06-01T21:00:00.000Z'),
+				duration: 120,
+				seatsCount: 50,
+			},
+		],
+	})
+	ranking: FastSelloutRankingItem[];
+}
