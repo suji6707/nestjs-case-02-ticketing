@@ -19,8 +19,8 @@ import {
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 
 @Injectable()
-export class RankingService {
-	private readonly logger = new Logger(RankingService.name);
+export class SelloutRankingService {
+	private readonly logger = new Logger(SelloutRankingService.name);
 
 	constructor(
 		@Inject('IConcertRepository')

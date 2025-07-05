@@ -54,6 +54,7 @@ export class PaymentTokenService implements ITokenService {
 		if (!tokenStatus) {
 			return false;
 		}
+		console.log('tokenStatus', tokenStatus);
 
 		const payload = await this.jwtService.verifyJwtAsync(token);
 

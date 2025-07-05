@@ -24,7 +24,7 @@ import { Seat, SeatStatus } from '../domain/models/seat';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
-import { RankingService } from './ranking.service';
+import { SelloutRankingService } from './sellout-ranking.service';
 
 @Injectable()
 export class ReservationService {
@@ -45,7 +45,7 @@ export class ReservationService {
 		@Inject(DISTRIBUTED_LOCK_SERVICE)
 		private readonly distributedLockService: IDistributedLockService,
 		private readonly redisService: RedisService,
-		private readonly rankingService: RankingService,
+		private readonly selloutRankingService: SelloutRankingService,
 	) {}
 
 	async temporaryReserve(
@@ -222,7 +222,7 @@ export class ReservationService {
 
 		// redis sorted set 업데이트: 🟡매진 확인 후 duration 기록
 		const scheduleId = seat.scheduleId;
-		await this.rankingService.updateRanking(scheduleId);
+		await this.selloutRankingService.updateRanking(scheduleId);
 
 		return {
 			reservation: {

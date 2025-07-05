@@ -14,6 +14,7 @@ import { Request } from 'express';
 import { AuthGuard } from '../../auth/application/services/auth.guard';
 import { Reservation } from '../application/domain/models/reservation';
 import { ITokenService } from '../application/services/interfaces/itoken.service';
+import { QueueTokenService } from '../application/services/queue-token.service';
 import { ReservationService } from '../application/services/reservation.service';
 import {
 	PaymentRequestDto,
@@ -33,7 +34,7 @@ export class ReservationController {
 	constructor(
 		private readonly reservationService: ReservationService,
 		@Inject('QueueTokenService')
-		private readonly tokenService: ITokenService,
+		private readonly tokenService: QueueTokenService,
 	) {}
 
 	// 대기열 토큰발급 (TTL 1시간)

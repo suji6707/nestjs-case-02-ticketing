@@ -28,9 +28,9 @@ import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
 import { PaymentTokenService } from './payment-token.service';
 import { QueueTokenService } from './queue-token.service';
-import { RankingService } from './ranking.service';
 import { ReservationService } from './reservation.service';
 import { SeatLockService } from './seat-lock.service';
+import { RankingService } from './sellout-ranking.service';
 
 describe('RankingService', () => {
 	let reservationService: ReservationService;
