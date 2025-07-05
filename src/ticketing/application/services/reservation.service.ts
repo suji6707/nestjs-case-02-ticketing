@@ -21,9 +21,13 @@ import {
 } from '../../controllers/dtos/response.dto';
 import { Reservation, ReservationStatus } from '../domain/models/reservation';
 import { Seat, SeatStatus } from '../domain/models/seat';
+import { TokenStatus } from '../domain/models/token';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
+import { PaymentTokenService } from './payment-token.service';
+import { QueueRankingService } from './queue-ranking.service';
+import { QueueTokenService } from './queue-token.service';
 import { SelloutRankingService } from './sellout-ranking.service';
 
 @Injectable()
@@ -36,9 +40,9 @@ export class ReservationService {
 		@Inject('IReservationRepository')
 		private readonly reservationRepository: IReservationRepository,
 		@Inject('QueueTokenService')
-		private readonly queueTokenService: ITokenService,
+		private readonly queueTokenService: QueueTokenService,
 		@Inject('PaymentTokenService')
-		private readonly paymentTokenService: ITokenService,
+		private readonly paymentTokenService: PaymentTokenService,
 		private readonly paymentService: PaymentService,
 		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
 		private readonly queueProducer: QueueProducer,
@@ -46,6 +50,7 @@ export class ReservationService {
 		private readonly distributedLockService: IDistributedLockService,
 		private readonly redisService: RedisService,
 		private readonly selloutRankingService: SelloutRankingService,
+		private readonly queueRankingService: QueueRankingService,
 	) {}
 
 	async temporaryReserve(
@@ -54,10 +59,13 @@ export class ReservationService {
 		queueToken: string,
 	): Promise<ReserveResponseDto> {
 		try {
+			// 전체 큐 업데이트
+			await this.queueRankingService.updateEntireQueue();
 			// token verify
 			const isValidToken = await this.queueTokenService.verifyToken(
 				userId,
 				queueToken,
+				TokenStatus.PROCESSING, // 예약페이지 접속한 사람만 예약할 수 있음
 			);
 			if (!isValidToken) {
 				throw new Error('Invalid queue token');
@@ -201,6 +209,7 @@ export class ReservationService {
 		const isValidToken = await this.paymentTokenService.verifyToken(
 			userId,
 			paymentToken,
+			TokenStatus.WAITING,
 		);
 		if (!isValidToken) {
 			throw new Error('Invalid payment token');

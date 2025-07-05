@@ -1,4 +1,4 @@
-// sorted set 관련
+// sorted set 1) 랭킹시스템 관련
 export const getDurationKey = (scheduleId: number): string => {
 	return `schedule:${scheduleId}`;
 };
@@ -17,6 +17,19 @@ export const getTotalSeatsCountKey = (scheduleId: number): string => {
 
 export const getBookedCountKey = (scheduleId: number): string => {
 	return `booked_count:schedule:${scheduleId}`;
+};
+
+// sorted set 2) 대기열 관련
+export const waitingQueueKey = (): string => {
+	return 'waiting_queue';
+};
+
+export const activeQueueKey = (): string => {
+	return 'active_queue';
+};
+
+export const maxActiveUsersCountKey = (): string => {
+	return 'max_active_users_count';
 };
 
 // 분산락 관련

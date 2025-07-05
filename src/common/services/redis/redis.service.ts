@@ -45,7 +45,7 @@ export class RedisService implements OnApplicationShutdown {
 		return this.client;
 	}
 
-	// sorted set
+	// sorted set ============================================================
 	async zadd(key: string, score: number, member: string): Promise<number> {
 		return this.client.zadd(key, score, member);
 	}
@@ -71,7 +71,27 @@ export class RedisService implements OnApplicationShutdown {
 		return this.client.incr(key);
 	}
 
-	// string
+	async zcard(key: string): Promise<number> {
+		return this.client.zcard(key);
+	}
+
+	async zscore(key: string, member: string): Promise<number> {
+		const score = await this.client.zscore(key, member);
+		if (score === null) {
+			return -1;
+		}
+		return Number(score);
+	}
+
+	async zrank(key: string, member: string): Promise<number> {
+		const rank = await this.client.zrank(key, member);
+		if (rank === null) {
+			return -1;
+		}
+		return Number(rank);
+	}
+
+	// string ============================================================
 	async set(
 		key: string,
 		value: any,
@@ -100,7 +120,7 @@ export class RedisService implements OnApplicationShutdown {
 		}
 	}
 
-	// hash map
+	// hash map ============================================================
 	async hset(
 		key: string,
 		data: Map<string | number, any> | Record<string | number, any>,

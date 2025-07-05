@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { PaymentModule } from '../payment/payment.module';
 import { EventSearchService } from './application/services/event-search.service';
 import { PaymentTokenService } from './application/services/payment-token.service';
+import { QueueRankingService } from './application/services/queue-ranking.service';
 import { QueueTokenService } from './application/services/queue-token.service';
 import { ReservationService } from './application/services/reservation.service';
 import { SeatLockService } from './application/services/seat-lock.service';
@@ -21,6 +22,7 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 		ReservationService,
 		SeatLockService,
 		SelloutRankingService,
+		QueueRankingService,
 		{ provide: 'QueueTokenService', useClass: QueueTokenService },
 		{ provide: 'PaymentTokenService', useClass: PaymentTokenService },
 		{ provide: 'IConcertRepository', useClass: ConcertPrismaRepository },
