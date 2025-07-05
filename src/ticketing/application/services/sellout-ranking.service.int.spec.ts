@@ -30,11 +30,11 @@ import { PaymentTokenService } from './payment-token.service';
 import { QueueTokenService } from './queue-token.service';
 import { ReservationService } from './reservation.service';
 import { SeatLockService } from './seat-lock.service';
-import { RankingService } from './sellout-ranking.service';
+import { SelloutRankingService } from './sellout-ranking.service';
 
 describe('RankingService', () => {
 	let reservationService: ReservationService;
-	let rankingService: RankingService;
+	let rankingService: SelloutRankingService;
 	let userRepository: IUserRepository;
 	let concertRepository: IConcertRepository;
 	let seatRepository: ISeatRepository;
@@ -53,7 +53,7 @@ describe('RankingService', () => {
 			imports: [CommonModule, AuthModule, PaymentModule, QueueModule],
 			providers: [
 				ReservationService,
-				RankingService,
+				SelloutRankingService,
 				{
 					provide: 'IConcertRepository',
 					useClass: ConcertPrismaRepository,
@@ -87,7 +87,7 @@ describe('RankingService', () => {
 			.compile();
 
 		reservationService = module.get<ReservationService>(ReservationService);
-		rankingService = module.get<RankingService>(RankingService);
+		rankingService = module.get<SelloutRankingService>(SelloutRankingService);
 		userRepository = module.get<IUserRepository>('IUserRepository');
 		concertRepository = module.get<IConcertRepository>('IConcertRepository');
 		seatRepository = module.get<ISeatRepository>('ISeatRepository');
