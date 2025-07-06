@@ -12,12 +12,14 @@ import {
 	ChargeResponseDto,
 	PointUseResponseDto,
 } from 'src/payment/constrollers/dtos/response.dto';
+import { IReservationRepository } from 'src/ticketing/application/domain/repositories/ireservation.repository';
 import { UserPoint } from '../domain/models/user-point';
 import {
 	IPointHistoryRepository,
 	PointHistoryType,
 } from '../domain/repositories/ipoint-history.repository';
 import { IUserPointRepository } from '../domain/repositories/iuser-point.repository';
+import { PaymentEventPublisher } from '../event-publishers/payment-event.publisher';
 
 @Injectable()
 export class PaymentService {
@@ -29,8 +31,11 @@ export class PaymentService {
 		private readonly userPointRepository: IUserPointRepository,
 		@Inject('IPointHistoryRepository')
 		private readonly pointHistoryRepository: IPointHistoryRepository,
+		@Inject('IReservationRepository')
+		private readonly reservationRepository: IReservationRepository,
 		@Inject(DISTRIBUTED_LOCK_SERVICE)
 		private readonly distributedLockService: IDistributedLockService,
+		private readonly paymentEventPublisher: PaymentEventPublisher,
 	) {}
 
 	async charge(userId: number, amount: number): Promise<ChargeResponseDto> {
@@ -85,6 +90,11 @@ export class PaymentService {
 
 		const endTime = Date.now();
 		this.logger.log(`exec time: ${endTime - startTime}ms`);
+
+		// 이벤트 발행
+		const reservationContext =
+			await this.reservationRepository.getReservationContext(userId);
+		await this.paymentEventPublisher.publishPaymentSuccess(reservationContext);
 
 		return { balance: updatedUserPoint.balance };
 	}

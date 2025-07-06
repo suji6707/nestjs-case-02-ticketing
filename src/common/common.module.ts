@@ -1,12 +1,18 @@
 import { ClsPluginTransactional } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Global, Module } from '@nestjs/common';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Redis } from 'ioredis';
 import { ClsModule } from 'nestjs-cls';
+import { NestEventBus } from './services/events/nest-event-bus';
 import { PrismaService } from './services/prisma.service';
 import { DistributedLockService } from './services/redis/distributed-lock.service';
 import { RedisService } from './services/redis/redis.service';
-import { DISTRIBUTED_LOCK_SERVICE, REDIS_CLIENT } from './utils/constants';
+import {
+	DISTRIBUTED_LOCK_SERVICE,
+	EVENT_BUS,
+	REDIS_CLIENT,
+} from './utils/constants';
 
 @Global()
 @Module({
@@ -20,6 +26,7 @@ import { DISTRIBUTED_LOCK_SERVICE, REDIS_CLIENT } from './utils/constants';
 				}),
 			],
 		}),
+		EventEmitterModule.forRoot(),
 	],
 	controllers: [],
 	providers: [
@@ -42,7 +49,11 @@ import { DISTRIBUTED_LOCK_SERVICE, REDIS_CLIENT } from './utils/constants';
 			provide: DISTRIBUTED_LOCK_SERVICE,
 			useClass: DistributedLockService,
 		},
+		{
+			provide: EVENT_BUS,
+			useClass: NestEventBus,
+		},
 	],
-	exports: [PrismaService, RedisService, DISTRIBUTED_LOCK_SERVICE],
+	exports: [PrismaService, RedisService, DISTRIBUTED_LOCK_SERVICE, EVENT_BUS],
 })
 export class CommonModule {}

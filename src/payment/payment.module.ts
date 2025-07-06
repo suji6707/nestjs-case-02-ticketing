@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { PaymentEventPublisher } from './application/event-publishers/payment-event.publisher';
 import { PaymentService } from './application/services/payment.service';
 import { PaymentController } from './constrollers/payment.controller';
 import { PointHistoryPrismaRepository } from './infrastructure/persistence/point-history.repository';
@@ -13,6 +14,7 @@ import { UserPointPrismaRepository } from './infrastructure/persistence/user-poi
 			provide: 'IPointHistoryRepository',
 			useClass: PointHistoryPrismaRepository,
 		},
+		PaymentEventPublisher,
 	],
 	exports: [PaymentService],
 })
