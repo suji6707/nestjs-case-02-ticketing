@@ -82,15 +82,6 @@ describe('QueueTokenService Integration Test', () => {
 	describe('verifyToken', () => {
 		it('대기열 토큰을 검증한다', async () => {
 			// given
-			const concertId = 1;
-			await TestWorkerSimulator.addJobAndStartProcess(
-				queueProducer,
-				queueConsumer,
-				queueTokenService,
-				concertId,
-				queueToken,
-			);
-
 			// when
 			const result = await queueTokenService.verifyToken(
 				userId,

@@ -100,7 +100,7 @@ export class ReservationService {
 						1, // 재시도 X. 한 요청만 락을 획득하고 나머지는 실패하는것이 정상
 					);
 
-				// Write back to cache
+				// Write back to cache (좌석정보)
 				const cacheKey = getSeatsCacheKey(seatId);
 				const obj = {
 					[seatId]: {
@@ -117,6 +117,9 @@ export class ReservationService {
 					seatId,
 				});
 				paymentToken = token;
+
+				// 대기열 토큰 삭제
+				await this.queueTokenService.deleteToken(queueToken);
 			} catch (error) {
 				this.logger.error(error);
 				throw new Error('FAILED_TO_ACQUIRE_LOCK'); // 이미 예약된 좌석입니다
