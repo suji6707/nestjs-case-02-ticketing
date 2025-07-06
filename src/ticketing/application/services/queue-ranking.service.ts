@@ -1,26 +1,10 @@
-import {
-	BadRequestException,
-	Inject,
-	Injectable,
-	Logger,
-} from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import {
 	activeQueueKey,
-	getBookedCountKey,
-	getDurationKey,
-	getFastSelloutRankingKey,
-	getSellingStartTimeKey,
-	getTotalSeatsCountKey,
 	maxActiveUsersCountKey,
-	maxActiveUsersKey,
 	waitingQueueKey,
 } from 'src/common/utils/redis-keys';
-import {
-	FastSelloutRankingItem,
-	FastSelloutRankingResponseDto,
-} from 'src/ticketing/controllers/dtos/response.dto';
-import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 
 @Injectable()
 export class QueueRankingService {
@@ -31,7 +15,7 @@ export class QueueRankingService {
 	async initialize(): Promise<void> {
 		await this.redisService.delete(waitingQueueKey());
 		await this.redisService.delete(activeQueueKey());
-		await this.redisService.set(maxActiveUsersKey(), 10); // 동시접속 10명
+		await this.redisService.set(maxActiveUsersCountKey(), 10); // 동시접속 10명
 	}
 
 	/**

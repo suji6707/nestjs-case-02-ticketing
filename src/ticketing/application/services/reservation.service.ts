@@ -72,7 +72,6 @@ export class ReservationService {
 			}
 
 			// domain logic
-			console.log('seatId', seatId);
 			const seat = await this.seatRepository.findOne(seatId);
 			seat.setReserved();
 			const reservation = new Reservation({

@@ -1,6 +1,7 @@
 // SERVICE INJECTION TOKEN
 export const REDIS_CLIENT = 'REDIS_CLIENT';
 export const DISTRIBUTED_LOCK_SERVICE = 'DISTRIBUTED_LOCK_SERVICE';
+export const EVENT_BUS = 'EVENT_BUS';
 
 // ======================= TTL (비즈니스 로직) =======================
 export const QUEUE_TOKEN_TTL = 3600; // 1h
