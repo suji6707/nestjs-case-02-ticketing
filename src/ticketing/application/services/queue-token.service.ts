@@ -57,11 +57,15 @@ export class QueueTokenService implements ITokenService {
 			`Queue token created and stored in Redis for userId: ${userId}, concertId: ${concertId}`,
 		);
 
-		const job = await this.queueProducer.addJob(getQueueName(concertId), {
-			token,
-		}); // TODO: 같은 캐시키로 합치기
-		const jobCacheKey = getQueueTokenJobIdKey(token);
-		await this.redisService.set(jobCacheKey, job.id, QUEUE_TOKEN_TTL);
+		// const job = await this.queueProducer.addJob(getQueueName(concertId), {
+		// 	token,
+		// });
+
+		// waiting queue sorted set에 추가
+		await this.queueRankingService.addToWaitingQueue(token);
+
+		// const jobCacheKey = getQueueTokenJobIdKey(token);
+		// await this.redisService.set(jobCacheKey, job.id, QUEUE_TOKEN_TTL);
 
 		return { token };
 	}
@@ -130,20 +134,20 @@ export class QueueTokenService implements ITokenService {
 	}
 
 	// 대기열 진입 순서인지 job status 체크
-	private async _checkIsProcessing(token: string): Promise<boolean> {
-		const payload = await this.jwtService.verifyJwtAsync(token);
-		const concertId = payload.concertId;
+	// private async _checkIsProcessing(token: string): Promise<boolean> {
+	// 	const payload = await this.jwtService.verifyJwtAsync(token);
+	// 	const concertId = payload.concertId;
 
-		const jobCacheKey = getQueueTokenJobIdKey(token);
-		const jobId = await this.redisService.get(jobCacheKey);
-		if (!jobId) {
-			return false;
-		}
-		const job = await this.queueProducer.getJob(getQueueName(concertId), jobId);
+	// 	const jobCacheKey = getQueueTokenJobIdKey(token);
+	// 	const jobId = await this.redisService.get(jobCacheKey);
+	// 	if (!jobId) {
+	// 		return false;
+	// 	}
+	// 	const job = await this.queueProducer.getJob(getQueueName(concertId), jobId);
 
-		const jobState = await job.getState();
-		console.log('jobState', jobState);
+	// 	const jobState = await job.getState();
+	// 	console.log('jobState', jobState);
 
-		return jobState === 'active';
-	}
+	// 	return jobState === 'active';
+	// }
 }

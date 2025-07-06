@@ -7,21 +7,21 @@ import { QueueProducer } from 'src/ticketing/infrastructure/external/queue-produ
 export class TestWorkerSimulator {
 	private constructor() {}
 
-	static async addJobAndStartProcess(
-		queueProducer: QueueProducer,
-		queueConsumer: QueueConsumer,
-		queueTokenService: QueueTokenService,
-		concertId: number,
-		queueToken: string,
-	): Promise<void> {
-		// 대기열 진입
-		const job = await queueProducer.addJob(getQueueName(concertId), {
-			token: queueToken,
-		});
-		// 워커 함수 직접 호출 (대기열 통과)
-		await queueConsumer.process(job);
-		await queueTokenService.checkAndUpdateTokenStatus(queueToken);
-	}
+	// static async addJobAndStartProcess(
+	// 	queueProducer: QueueProducer,
+	// 	queueConsumer: QueueConsumer,
+	// 	queueTokenService: QueueTokenService,
+	// 	concertId: number,
+	// 	queueToken: string,
+	// ): Promise<void> {
+	// 	// 대기열 진입
+	// 	const job = await queueProducer.addJob(getQueueName(concertId), {
+	// 		token: queueToken,
+	// 	});
+	// 	// 워커 함수 직접 호출 (대기열 통과)
+	// 	await queueConsumer.process(job);
+	// 	await queueTokenService.checkAndUpdateTokenStatus(queueToken);
+	// }
 
 	static addDelayJobAndExpire = async (
 		queueProducer: QueueProducer,

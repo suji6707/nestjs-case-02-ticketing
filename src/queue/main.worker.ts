@@ -7,11 +7,12 @@ import { ReservationExpireConsumer } from './services/reservation-expire-consume
 export const initializeAndStartWorkers = async (
 	app: INestApplicationContext,
 ): Promise<void> => {
-	const queueConsumer = app.get(QueueConsumer);
+	// const queueConsumer = app.get(QueueConsumer);
 	const reservationExpireConsumer = app.get(ReservationExpireConsumer);
 
-	await queueConsumer.loadQueuesFromRedis();
-	await queueConsumer.initializeAndStartWorkers();
+	// no need queue consumer
+	// await queueConsumer.loadQueuesFromRedis();
+	// await queueConsumer.initializeAndStartWorkers();
 
 	await reservationExpireConsumer.initializeAndStartWorkers();
 };
