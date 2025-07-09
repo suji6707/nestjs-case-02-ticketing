@@ -24,6 +24,7 @@ import { Seat, SeatStatus } from '../domain/models/seat';
 import { TokenStatus } from '../domain/models/token';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
+import { ReservationEventPublisher } from '../event-publishers/reservation-event.publisher';
 import { ITokenService } from './interfaces/itoken.service';
 import { PaymentTokenService } from './payment-token.service';
 import { QueueRankingService } from './queue-ranking.service';
@@ -51,6 +52,7 @@ export class ReservationService {
 		private readonly redisService: RedisService,
 		private readonly selloutRankingService: SelloutRankingService,
 		private readonly queueRankingService: QueueRankingService,
+		private readonly reservationEventPublisher: ReservationEventPublisher,
 	) {}
 
 	async temporaryReserve(
@@ -224,9 +226,9 @@ export class ReservationService {
 			},
 		);
 
-		// 좌석예약 성공시에만 결제 모듈 호출
+		// 좌석예약 성공시 이벤트 발행 -> 결제 모듈 호출
 		if (reservation.status === ReservationStatus.CONFIRMED) {
-			await this.paymentService.use(userId, reservation.purchasePrice);
+			this.reservationEventPublisher.publishReservationSuccess(reservation);
 		}
 
 		await this.paymentTokenService.deleteToken(paymentToken);

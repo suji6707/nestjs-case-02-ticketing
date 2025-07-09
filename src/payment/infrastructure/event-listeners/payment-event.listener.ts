@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { DataPlatformService } from 'src/data-platform/services/data-platform.service';
+import { DataPlatformService } from 'src/data-platform/application/services/data-platform.service';
 import {
 	PaymentFailedEvent,
 	PaymentSuccessEvent,
@@ -17,8 +17,7 @@ export class PaymentEventListener {
 	async onPaymentSuccess(event: PaymentSuccessEvent): Promise<void> {
 		this.logger.log('payment.success event received');
 
-		const payload = event.data;
-		await this.dataPlatformService.send(payload);
+		await this.dataPlatformService.send(event);
 		return;
 	}
 
@@ -26,10 +25,10 @@ export class PaymentEventListener {
 	async onPaymentFailed(event: PaymentFailedEvent): Promise<void> {
 		this.logger.log('payment.failed event received');
 
-		const payload = event.data;
-		// @@@TODO 보상트랜잭션
+		// @@@TODO 결제관련 보상트랜잭션
+		// const payload = event.data;
 
-		await this.dataPlatformService.send(payload);
+		await this.dataPlatformService.send(event);
 		return;
 	}
 }
