@@ -28,13 +28,6 @@ export class PaymentRequestDto {
 	@Type(() => Number)
 	@IsNumber()
 	reservationId: number;
-
-	@ApiProperty({
-		example: 'eyJhbGciOiJIUI6I...HDk',
-		description: '결제 대기 토큰',
-	})
-	@IsString()
-	paymentToken: string;
 }
 
 export class ConcertScheduleRequestDto {
