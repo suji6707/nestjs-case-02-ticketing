@@ -21,9 +21,14 @@ import {
 } from '../../controllers/dtos/response.dto';
 import { Reservation, ReservationStatus } from '../domain/models/reservation';
 import { Seat, SeatStatus } from '../domain/models/seat';
+import { TokenStatus } from '../domain/models/token';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
+import { PaymentTokenService } from './payment-token.service';
+import { QueueRankingService } from './queue-ranking.service';
+import { QueueTokenService } from './queue-token.service';
+import { SelloutRankingService } from './sellout-ranking.service';
 
 @Injectable()
 export class ReservationService {
@@ -35,15 +40,17 @@ export class ReservationService {
 		@Inject('IReservationRepository')
 		private readonly reservationRepository: IReservationRepository,
 		@Inject('QueueTokenService')
-		private readonly queueTokenService: ITokenService,
+		private readonly queueTokenService: QueueTokenService,
 		@Inject('PaymentTokenService')
-		private readonly paymentTokenService: ITokenService,
+		private readonly paymentTokenService: PaymentTokenService,
 		private readonly paymentService: PaymentService,
 		private readonly txHost: TransactionHost<TransactionalAdapterPrisma>,
 		private readonly queueProducer: QueueProducer,
 		@Inject(DISTRIBUTED_LOCK_SERVICE)
 		private readonly distributedLockService: IDistributedLockService,
 		private readonly redisService: RedisService,
+		private readonly selloutRankingService: SelloutRankingService,
+		private readonly queueRankingService: QueueRankingService,
 	) {}
 
 	async temporaryReserve(
@@ -52,16 +59,20 @@ export class ReservationService {
 		queueToken: string,
 	): Promise<ReserveResponseDto> {
 		try {
+			// 전체 큐 업데이트
+			await this.queueRankingService.updateEntireQueue();
 			// token verify
 			const isValidToken = await this.queueTokenService.verifyToken(
 				userId,
 				queueToken,
+				TokenStatus.PROCESSING, // 예약페이지 접속한 사람만 예약할 수 있음
 			);
 			if (!isValidToken) {
 				throw new Error('Invalid queue token');
 			}
 
 			// domain logic
+			console.log('seatId', seatId);
 			const seat = await this.seatRepository.findOne(seatId);
 			seat.setReserved();
 			const reservation = new Reservation({
@@ -166,6 +177,29 @@ export class ReservationService {
 		return newReservation;
 	}
 
+	// 함수로 분리해야 test에서 mock하기 쉬움
+	async _confirmWithOptimisticLock(
+		reservationId: number,
+	): Promise<{ reservation: Reservation; seat: Seat }> {
+		// 예약상태 변경
+		const reservation = await this.reservationRepository.findOne(reservationId);
+		if (reservation.status !== ReservationStatus.PENDING) {
+			throw new Error('NOT_PENDING_RESERVATION');
+		}
+		reservation.setConfirmed();
+		const updatedReservation = await this.reservationRepository.update(
+			reservation,
+			ReservationStatus.PENDING,
+		);
+
+		// 좌석상태 변경
+		const seat = await this.seatRepository.findOne(reservation.seatId);
+		seat.setSold();
+		await this.seatRepository.update(seat, SeatStatus.RESERVED);
+
+		return { reservation: updatedReservation, seat };
+	}
+
 	async confirmReservation(
 		userId: number,
 		reservationId: number,
@@ -175,46 +209,37 @@ export class ReservationService {
 		const isValidToken = await this.paymentTokenService.verifyToken(
 			userId,
 			paymentToken,
+			TokenStatus.WAITING,
 		);
 		if (!isValidToken) {
 			throw new Error('Invalid payment token');
 		}
 
 		// 좌석 최종 배정
-		const updatedReservation = await this.txHost.withTransaction(async () => {
-			// 예약상태 변경
-			const reservation =
-				await this.reservationRepository.findOne(reservationId);
-			console.log('🟡reservation', reservation);
-			if (reservation.status !== ReservationStatus.PENDING) {
-				throw new Error('NOT_PENDING_RESERVATION');
-			}
-			reservation.setConfirmed();
-			const updatedReservation = await this.reservationRepository.update(
-				reservation,
-				ReservationStatus.PENDING,
-			);
+		const { reservation, seat } = await this.txHost.withTransaction(
+			async () => {
+				return await this._confirmWithOptimisticLock(reservationId);
+			},
+		);
 
-			// 좌석상태 변경
-			const seat = await this.seatRepository.findOne(reservation.seatId);
-			seat.setSold();
-			await this.seatRepository.update(seat, SeatStatus.RESERVED);
-
-			// 결제 모듈 호출
+		// 좌석예약 성공시에만 결제 모듈 호출
+		if (reservation.status === ReservationStatus.CONFIRMED) {
 			await this.paymentService.use(userId, reservation.purchasePrice);
-
-			return updatedReservation;
-		});
+		}
 
 		await this.paymentTokenService.deleteToken(paymentToken);
 
+		// redis sorted set 업데이트: 🟡매진 확인 후 duration 기록
+		const scheduleId = seat.scheduleId;
+		await this.selloutRankingService.updateRanking(scheduleId);
+
 		return {
 			reservation: {
-				id: updatedReservation.id,
-				seatId: updatedReservation.seatId,
-				purchasePrice: updatedReservation.purchasePrice,
-				status: updatedReservation.status,
-				paidAt: updatedReservation.paidAt,
+				id: reservation.id,
+				seatId: reservation.seatId,
+				purchasePrice: reservation.purchasePrice,
+				status: reservation.status,
+				paidAt: reservation.paidAt,
 			},
 		};
 	}

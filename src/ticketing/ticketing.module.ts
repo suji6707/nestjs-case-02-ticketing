@@ -2,10 +2,13 @@ import { Module } from '@nestjs/common';
 import { PaymentModule } from '../payment/payment.module';
 import { EventSearchService } from './application/services/event-search.service';
 import { PaymentTokenService } from './application/services/payment-token.service';
+import { QueueRankingService } from './application/services/queue-ranking.service';
 import { QueueTokenService } from './application/services/queue-token.service';
 import { ReservationService } from './application/services/reservation.service';
 import { SeatLockService } from './application/services/seat-lock.service';
+import { SelloutRankingService } from './application/services/sellout-ranking.service';
 import { EventSearchController } from './controllers/event-search.controller';
+import { RankingController } from './controllers/ranking.controller';
 import { ReservationController } from './controllers/reservation.controller';
 import { QueueProducer } from './infrastructure/external/queue-producer.service';
 import { ConcertPrismaRepository } from './infrastructure/persistence/concert.prisma.repository';
@@ -18,6 +21,8 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 		EventSearchService,
 		ReservationService,
 		SeatLockService,
+		SelloutRankingService,
+		QueueRankingService,
 		{ provide: 'QueueTokenService', useClass: QueueTokenService },
 		{ provide: 'PaymentTokenService', useClass: PaymentTokenService },
 		{ provide: 'IConcertRepository', useClass: ConcertPrismaRepository },
@@ -28,7 +33,11 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 		},
 		QueueProducer,
 	],
-	controllers: [EventSearchController, ReservationController],
+	controllers: [
+		EventSearchController,
+		ReservationController,
+		RankingController,
+	],
 	exports: [
 		SeatLockService,
 		{

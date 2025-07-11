@@ -14,8 +14,9 @@ import {
 } from '../../controllers/dtos/response.dto';
 import { Concert } from '../domain/models/concert';
 import { Seat } from '../domain/models/seat';
+import { TokenStatus } from '../domain/models/token';
 import { IConcertRepository } from '../domain/repositories/iconcert.repository';
-import { ITokenService } from './interfaces/itoken.service';
+import { QueueTokenService } from './queue-token.service';
 
 @Injectable()
 export class EventSearchService {
@@ -23,7 +24,7 @@ export class EventSearchService {
 		@Inject('IConcertRepository')
 		private readonly concertRepository: IConcertRepository,
 		@Inject('QueueTokenService')
-		private readonly tokenService: ITokenService,
+		private readonly tokenService: QueueTokenService,
 		private readonly redisService: RedisService,
 	) {}
 
@@ -39,6 +40,7 @@ export class EventSearchService {
 		const isValidToken = await this.tokenService.verifyToken(
 			userId,
 			queueToken,
+			TokenStatus.PROCESSING,
 		);
 		if (!isValidToken) {
 			throw new BadRequestException('Invalid token');
@@ -78,6 +80,7 @@ export class EventSearchService {
 		const isValidToken = await this.tokenService.verifyToken(
 			userId,
 			queueToken,
+			TokenStatus.PROCESSING,
 		);
 		if (!isValidToken) {
 			throw new BadRequestException('Invalid token');

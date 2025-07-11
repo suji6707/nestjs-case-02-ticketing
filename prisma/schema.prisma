@@ -101,6 +101,7 @@ model ReservationEntity {
   status        Int        @db.TinyInt
   paidAt        DateTime?  @map("paid_at")
   createdAt     DateTime   @default(now()) @map("created_at")
+  updatedAt     DateTime   @default(now()) @map("updated_at")
 
   @@unique([seatId])
   @@index([userId])
