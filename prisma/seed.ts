@@ -78,16 +78,6 @@ async function main(): Promise<void> {
 	}
 }
 
-main()
-	.then(async () => {
-		await prisma.$disconnect();
-	})
-	.catch(async (e) => {
-		console.error(e);
-		await prisma.$disconnect();
-		process.exit(1);
-	});
-
 // 유저플로우 따로. 미리 생성해둔후, k6에선 userId 1~50까지 login.
 async function createUsers(): Promise<void> {
 	await prisma.reservationEntity.deleteMany({});
@@ -113,6 +103,52 @@ async function createUsers(): Promise<void> {
 	}
 }
 
+const createReservationQuery = async (): Promise<any> => {
+	const baseTime = new Date();
+	const values = [];
+	for (let i = 1; i <= 50; i++) {
+		const userId = i;
+		const seatId = i;
+		const purchasePrice = 10000;
+		const status = 1; // confirmed
+		const paidAt = new Date(baseTime.getTime() + i * 60 * 1000);
+		const createdAt = baseTime;
+		const updatedAt = baseTime;
+		values.push(
+			`(${userId}, ${seatId}, ${purchasePrice}, ${status}, ${paidAt}, ${createdAt}, ${updatedAt})`,
+		);
+	}
+	const query = `
+		INSERT INTO reservations 
+		(user_id, seat_id, purchase_price, status, paid_at, created_at, updated_at)
+		VALUES
+		${values.join(',')};
+	`;
+	console.log(query);
+
+	return new Promise((resolve, reject) => {
+		prisma.$executeRawUnsafe(query, (err, result) => {
+			if (err) {
+				console.error(err);
+				reject(err);
+				return;
+			}
+			// console.log(result);
+			resolve(result);
+		});
+	});
+};
+
+// main()
+// 	.then(async () => {
+// 		await prisma.$disconnect();
+// 	})
+// 	.catch(async (e) => {
+// 		console.error(e);
+// 		await prisma.$disconnect();
+// 		process.exit(1);
+// 	});
+
 // createUsers()
 // 	.catch((e) => {
 // 		console.error(e);
@@ -121,3 +157,31 @@ async function createUsers(): Promise<void> {
 // 	.finally(() => {
 // 		prisma.$disconnect();
 // 	});
+
+createReservationQuery()
+	.catch((e) => {
+		console.error(e);
+		process.exit(1);
+	})
+	.finally(() => {
+		prisma.$disconnect();
+	});
+
+/*
+insert into reservations 
+(user_id, seat_id, purchase_price, status, paid_at, created_at, updated_at)
+values
+(1, 101, 50000, 2, '2025-07-05 10:15:30', '2025-07-05 10:15:30', '2025-07-05 10:15:30'),
+(2, 102, 50000, 2, '2025-07-05 10:16:12', '2025-07-05 10:16:12', '2025-07-05 10:16:12'),
+(3, 103, 50000, 2, '2025-07-05 10:17:05', '2025-07-05 10:17:05', '2025-07-05 10:17:05'),
+(4, 104, 50000, 2, '2025-07-05 10:18:22', '2025-07-05 10:18:22', '2025-07-05 10:18:22'),
+(5, 105, 50000, 2, '2025-07-05 10:19:45', '2025-07-05 10:19:45', '2025-07-05 10:19:45'),
+(6, 106, 50000, 2, '2025-07-05 10:21:03', '2025-07-05 10:21:03', '2025-07-05 10:21:03'),
+(7, 107, 50000, 2, '2025-07-05 10:22:18', '2025-07-05 10:22:18', '2025-07-05 10:22:18'),
+(8, 108, 50000, 2, '2025-07-05 10:23:42', '2025-07-05 10:23:42', '2025-07-05 10:23:42'),
+(9, 109, 50000, 2, '2025-07-05 10:24:55', '2025-07-05 10:24:55', '2025-07-05 10:24:55'),
+(10, 110, 50000, 2, '2025-07-05 10:26:10', '2025-07-05 10:26:10', '2025-07-05 10:26:10'),
+(11, 111, 75000, 2, '2025-07-05 10:27:33', '2025-07-05 10:27:33', '2025-07-05 10:27:33'),
+(12, 112, 75000, 2, '2025-07-05 10:28:47', '2025-07-05 10:28:47', '2025-07-05 10:28:47');
+
+*/

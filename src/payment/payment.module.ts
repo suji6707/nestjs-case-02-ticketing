@@ -1,10 +1,15 @@
-import { Module } from '@nestjs/common';
+import { Module, forwardRef } from '@nestjs/common';
+import { DataPlatformModule } from '../data-platform/data-platform.module';
+import { TicketingModule } from '../ticketing/ticketing.module';
+import { PaymentEventPublisher } from './application/event-publishers/payment-event.publisher';
 import { PaymentService } from './application/services/payment.service';
 import { PaymentController } from './constrollers/payment.controller';
+import { PaymentEventListener } from './infrastructure/event-listeners/payment-event.listener';
 import { PointHistoryPrismaRepository } from './infrastructure/persistence/point-history.repository';
 import { UserPointPrismaRepository } from './infrastructure/persistence/user-point.repository';
 
 @Module({
+	imports: [forwardRef(() => TicketingModule), DataPlatformModule],
 	controllers: [PaymentController],
 	providers: [
 		PaymentService,
@@ -13,6 +18,8 @@ import { UserPointPrismaRepository } from './infrastructure/persistence/user-poi
 			provide: 'IPointHistoryRepository',
 			useClass: PointHistoryPrismaRepository,
 		},
+		PaymentEventPublisher,
+		PaymentEventListener,
 	],
 	exports: [PaymentService],
 })

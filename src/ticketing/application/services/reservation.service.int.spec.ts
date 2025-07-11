@@ -1,3 +1,4 @@
+import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { IUserRepository } from 'src/auth/application/domain/repositories/iuser.repository';
 import { AuthModule } from 'src/auth/auth.module';
@@ -5,6 +6,7 @@ import { CommonModule } from 'src/common/common.module';
 import { PrismaService } from 'src/common/services/prisma.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import { REDIS_CLIENT, SEAT_EXPIRE_TTL } from 'src/common/utils/constants';
+import { IUserPointRepository } from 'src/payment/application/domain/repositories/iuser-point.repository';
 import { PaymentService } from 'src/payment/application/services/payment.service';
 import { PaymentModule } from 'src/payment/payment.module';
 import { QueueModule } from 'src/queue/queue.module';
@@ -26,9 +28,11 @@ import { IReservationRepository } from '../domain/repositories/ireservation.repo
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
 import { ITokenService } from './interfaces/itoken.service';
 import { PaymentTokenService } from './payment-token.service';
+import { QueueRankingService } from './queue-ranking.service';
 import { QueueTokenService } from './queue-token.service';
 import { ReservationService } from './reservation.service';
 import { SeatLockService } from './seat-lock.service';
+import { SelloutRankingService } from './sellout-ranking.service';
 
 describe('ReservationService', () => {
 	let reservationService: ReservationService;
@@ -36,12 +40,14 @@ describe('ReservationService', () => {
 	let concertRepository: IConcertRepository;
 	let seatRepository: ISeatRepository;
 	let reservationRepository: IReservationRepository;
+	let userPointRepository: IUserPointRepository;
 	let queueTokenService: QueueTokenService;
 	let paymentService: PaymentService;
 	let queueProducer: QueueProducer;
 	let queueConsumer: QueueConsumer;
 	let reservationExpireConsumer: ReservationExpireConsumer;
 	let seatLockService: SeatLockService;
+	let queueRankingService: QueueRankingService;
 
 	beforeAll(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -72,6 +78,8 @@ describe('ReservationService', () => {
 				QueueConsumer,
 				ReservationExpireConsumer,
 				SeatLockService,
+				SelloutRankingService,
+				QueueRankingService,
 			],
 		})
 			.overrideProvider(PrismaService)
@@ -87,14 +95,20 @@ describe('ReservationService', () => {
 		reservationRepository = module.get<IReservationRepository>(
 			'IReservationRepository',
 		);
+		userPointRepository = module.get<IUserPointRepository>(
+			'IUserPointRepository',
+		);
 		paymentService = module.get<PaymentService>(PaymentService);
 		queueTokenService = module.get<QueueTokenService>('QueueTokenService');
+		queueRankingService = module.get<QueueRankingService>(QueueRankingService);
 		queueProducer = module.get<QueueProducer>(QueueProducer);
 		queueConsumer = module.get<QueueConsumer>(QueueConsumer);
 		reservationExpireConsumer = module.get<ReservationExpireConsumer>(
 			ReservationExpireConsumer,
 		);
 		seatLockService = module.get<SeatLockService>(SeatLockService);
+
+		await queueRankingService.initialize();
 	});
 
 	// 유저가 토큰을 발급받고 → 좌석 예약 요청 → 결제 완료까지의 흐름 테스트
@@ -116,15 +130,6 @@ describe('ReservationService', () => {
 		// 충전
 		await paymentService.charge(user.id, 10000);
 
-		// 대기열 진입
-		await TestWorkerSimulator.addJobAndStartProcess(
-			queueProducer,
-			queueConsumer,
-			queueTokenService,
-			concert.id,
-			token,
-		);
-
 		// 예약 요청
 		const { reservationId, paymentToken } =
 			await reservationService.temporaryReserve(user.id, seat.id, token);
@@ -143,6 +148,14 @@ describe('ReservationService', () => {
 
 		const seatAfter = await seatRepository.findOne(reservation.seatId);
 		expect(seatAfter.status).toBe(SeatStatus.SOLD);
+
+		// 이벤트 리스닝 확인
+		// 1. 최종예약 -> 결제
+		const userPointAfter = await userPointRepository.findOne(user.id);
+		expect(userPointAfter.balance).toBe(0);
+
+		// 2. 결제 -> 데이터전송플랫폼이 불렸는가?
+		// @@@TODO: send에 DB 넣고 확인하기.
 	});
 
 	it('좌석 임시배정 시간 만료 후 좌석은 다시 예약 가능해야 한다', async () => {
@@ -161,15 +174,6 @@ describe('ReservationService', () => {
 			userId: user.id,
 			concertId: concert.id,
 		});
-
-		// 대기열 진입
-		await TestWorkerSimulator.addJobAndStartProcess(
-			queueProducer,
-			queueConsumer,
-			queueTokenService,
-			concert.id,
-			token,
-		);
 
 		// 예약 요청
 		const { reservationId } = await reservationService.temporaryReserve(

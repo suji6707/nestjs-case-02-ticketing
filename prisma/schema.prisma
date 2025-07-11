@@ -107,3 +107,15 @@ model ReservationEntity {
   @@index([userId])
   @@map("reservations")
 }
+
+model EventLogEntity {
+  id        Int        @id @default(autoincrement())
+  eventName String     @map("event_name")
+  timestamp DateTime
+  data      Json
+  createdAt DateTime   @default(now()) @map("created_at")
+
+  @@index([eventName])
+  @@index([timestamp])
+  @@map("event_logs")
+}

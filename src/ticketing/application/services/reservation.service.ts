@@ -24,6 +24,7 @@ import { Seat, SeatStatus } from '../domain/models/seat';
 import { TokenStatus } from '../domain/models/token';
 import { IReservationRepository } from '../domain/repositories/ireservation.repository';
 import { ISeatRepository } from '../domain/repositories/iseat.repository';
+import { ReservationEventPublisher } from '../event-publishers/reservation-event.publisher';
 import { ITokenService } from './interfaces/itoken.service';
 import { PaymentTokenService } from './payment-token.service';
 import { QueueRankingService } from './queue-ranking.service';
@@ -51,6 +52,7 @@ export class ReservationService {
 		private readonly redisService: RedisService,
 		private readonly selloutRankingService: SelloutRankingService,
 		private readonly queueRankingService: QueueRankingService,
+		private readonly reservationEventPublisher: ReservationEventPublisher,
 	) {}
 
 	async temporaryReserve(
@@ -72,7 +74,6 @@ export class ReservationService {
 			}
 
 			// domain logic
-			console.log('seatId', seatId);
 			const seat = await this.seatRepository.findOne(seatId);
 			seat.setReserved();
 			const reservation = new Reservation({
@@ -101,7 +102,7 @@ export class ReservationService {
 						1, // 재시도 X. 한 요청만 락을 획득하고 나머지는 실패하는것이 정상
 					);
 
-				// Write back to cache
+				// Write back to cache (좌석정보)
 				const cacheKey = getSeatsCacheKey(seatId);
 				const obj = {
 					[seatId]: {
@@ -118,6 +119,9 @@ export class ReservationService {
 					seatId,
 				});
 				paymentToken = token;
+
+				// 대기열 토큰 삭제
+				await this.queueTokenService.deleteToken(queueToken);
 			} catch (error) {
 				this.logger.error(error);
 				throw new Error('FAILED_TO_ACQUIRE_LOCK'); // 이미 예약된 좌석입니다
@@ -200,48 +204,49 @@ export class ReservationService {
 		return { reservation: updatedReservation, seat };
 	}
 
-	async confirmReservation(
-		userId: number,
-		reservationId: number,
-		paymentToken: string,
-	): Promise<PaymentResponseDto> {
-		// verify
-		const isValidToken = await this.paymentTokenService.verifyToken(
-			userId,
-			paymentToken,
-			TokenStatus.WAITING,
-		);
-		if (!isValidToken) {
-			throw new Error('Invalid payment token');
+	async confirmReservation(reservationId: number): Promise<PaymentResponseDto> {
+		try {
+			// 좌석 최종 배정
+			const { reservation, seat } = await this.txHost.withTransaction(
+				async () => {
+					return await this._confirmWithOptimisticLock(reservationId);
+				},
+			);
+
+			// 좌석예약 성공시 이벤트 발행 -> 결제 모듈 호출
+			if (reservation.status === ReservationStatus.CONFIRMED) {
+				this.reservationEventPublisher.publishReservationSuccess(reservation);
+			}
+
+			// redis sorted set 업데이트: 🟡매진 확인 후 duration 기록
+			const scheduleId = seat.scheduleId;
+			await this.selloutRankingService.updateRanking(scheduleId);
+
+			return {
+				reservation: {
+					id: reservation.id,
+					seatId: reservation.seatId,
+					purchasePrice: reservation.purchasePrice,
+					status: reservation.status,
+					paidAt: reservation.paidAt,
+				},
+			};
+		} catch (error) {
+			this.logger.error(error);
+			// 보상 트랜잭션 이벤트 호출
+			const reservation =
+				await this.reservationRepository.findOne(reservationId);
+			this.reservationEventPublisher.publishPaymentCancel({
+				userId: reservation.userId,
+				amount: reservation.purchasePrice,
+			});
+			/**
+			 * 이벤트 기반 아키텍처에서는 throw error 하지 않음
+			 * - 이벤트 발행자에게 전파되지 않도록 함.
+			 * - 결제 취소 이벤트로 보상 트랜잭션, 유저에게는 별도 알림(아메일/푸쉬)으로 상황 안내 or Polling 대기에서 확인
+			 */
+			// throw error;
 		}
-
-		// 좌석 최종 배정
-		const { reservation, seat } = await this.txHost.withTransaction(
-			async () => {
-				return await this._confirmWithOptimisticLock(reservationId);
-			},
-		);
-
-		// 좌석예약 성공시에만 결제 모듈 호출
-		if (reservation.status === ReservationStatus.CONFIRMED) {
-			await this.paymentService.use(userId, reservation.purchasePrice);
-		}
-
-		await this.paymentTokenService.deleteToken(paymentToken);
-
-		// redis sorted set 업데이트: 🟡매진 확인 후 duration 기록
-		const scheduleId = seat.scheduleId;
-		await this.selloutRankingService.updateRanking(scheduleId);
-
-		return {
-			reservation: {
-				id: reservation.id,
-				seatId: reservation.seatId,
-				purchasePrice: reservation.purchasePrice,
-				status: reservation.status,
-				paidAt: reservation.paidAt,
-			},
-		};
 	}
 
 	async getInfo(reservationId: number): Promise<optional<Reservation>> {

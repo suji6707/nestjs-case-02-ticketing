@@ -126,17 +126,6 @@ describe('ReservationService E2E Test', () => {
 			queueTokens.push(res.body.token);
 		}
 
-		// 대기열 통과
-		for (let i = 0; i < numUsers; i++) {
-			await TestWorkerSimulator.addJobAndStartProcess(
-				queueProducer,
-				queueConsumer,
-				queueTokenService,
-				concert.id,
-				queueTokens[i],
-			);
-		}
-
 		// 동시 예약 요청
 		const promises = [];
 		for (let i = 0; i < numUsers; i++) {
@@ -197,17 +186,6 @@ describe('ReservationService E2E Test', () => {
 				.expect(201);
 			const queueToken = res.body.token;
 			queueTokens.push(queueToken);
-		}
-
-		// 대기열 통과
-		for (let i = 0; i < numUsers; i++) {
-			await TestWorkerSimulator.addJobAndStartProcess(
-				queueProducer,
-				queueConsumer,
-				queueTokenService,
-				concert.id,
-				queueTokens[i],
-			);
 		}
 
 		// 유저 1의 예약 요청

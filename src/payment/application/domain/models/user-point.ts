@@ -40,4 +40,8 @@ export class UserPoint {
 		}
 		this.balance -= amount;
 	}
+
+	refund(amount: number): void {
+		this.balance += amount;
+	}
 }

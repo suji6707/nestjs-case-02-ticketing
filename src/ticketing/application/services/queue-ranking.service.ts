@@ -1,37 +1,25 @@
-import {
-	BadRequestException,
-	Inject,
-	Injectable,
-	Logger,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { RedisService } from 'src/common/services/redis/redis.service';
 import {
 	activeQueueKey,
-	getBookedCountKey,
-	getDurationKey,
-	getFastSelloutRankingKey,
-	getSellingStartTimeKey,
-	getTotalSeatsCountKey,
 	maxActiveUsersCountKey,
-	maxActiveUsersKey,
 	waitingQueueKey,
 } from 'src/common/utils/redis-keys';
-import {
-	FastSelloutRankingItem,
-	FastSelloutRankingResponseDto,
-} from 'src/ticketing/controllers/dtos/response.dto';
-import { IConcertRepository } from '../domain/repositories/iconcert.repository';
 
 @Injectable()
-export class QueueRankingService {
+export class QueueRankingService implements OnModuleInit {
 	private readonly logger = new Logger(QueueRankingService.name);
 
 	constructor(private readonly redisService: RedisService) {}
 
+	async onModuleInit(): Promise<void> {
+		await this.initialize();
+	}
+
 	async initialize(): Promise<void> {
 		await this.redisService.delete(waitingQueueKey());
 		await this.redisService.delete(activeQueueKey());
-		await this.redisService.set(maxActiveUsersKey(), 10); // 동시접속 10명
+		await this.redisService.set(maxActiveUsersCountKey(), 10); // 동시접속 10명
 	}
 
 	/**
@@ -58,8 +46,10 @@ export class QueueRankingService {
 		let waitingCount = Number(await this.redisService.zcard(waitingQueueKey()));
 		while (activeCount < maxCount && waitingCount > 0) {
 			// waiting queue의 1순위를 active queue로 전환
-			const token = await this.redisService.zrange(waitingQueueKey(), 0, 0)[0];
-			this.logger.log('1st rank token: ', token.slice(0, 10));
+			const token = (
+				await this.redisService.zrange(waitingQueueKey(), 0, 0)
+			)[0];
+			console.log('1st rank token: ', token.slice(0, 10));
 			await this.redisService.zrem(waitingQueueKey(), token);
 			await this.redisService.zadd(activeQueueKey(), Date.now(), token);
 			// update count
@@ -102,5 +92,30 @@ export class QueueRankingService {
 		}
 		// 둘 다 없으면 권한 X
 		return result;
+	}
+
+	async deleteFromWaitingQueue(token: string): Promise<number> {
+		return this.redisService.zrem(waitingQueueKey(), token);
+	}
+
+	async deleteFromActiveQueue(token: string): Promise<number> {
+		return this.redisService.zrem(activeQueueKey(), token);
+	}
+
+	async _showQueues(): Promise<void> {
+		const waitingQueue = await this.redisService.zrange(
+			waitingQueueKey(),
+			0,
+			-1,
+			true,
+		);
+		const activeQueue = await this.redisService.zrange(
+			activeQueueKey(),
+			0,
+			-1,
+			true,
+		);
+		console.log('waitingQueue', waitingQueue);
+		console.log('activeQueue', activeQueue);
 	}
 }

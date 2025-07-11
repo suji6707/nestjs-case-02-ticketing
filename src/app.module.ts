@@ -4,6 +4,7 @@ import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { LoggerMiddleware } from './common/middlewares/logger.middleware';
 import { HttpExceptionFilter } from './common/services/exception.filter';
+import { DataPlatformModule } from './data-platform/data-platform.module';
 import { PaymentModule } from './payment/payment.module';
 import { QueueModule } from './queue/queue.module';
 import { TicketingModule } from './ticketing/ticketing.module';
@@ -15,6 +16,7 @@ import { TicketingModule } from './ticketing/ticketing.module';
 		TicketingModule,
 		QueueModule,
 		PaymentModule,
+		DataPlatformModule,
 	],
 	controllers: [],
 	providers: [

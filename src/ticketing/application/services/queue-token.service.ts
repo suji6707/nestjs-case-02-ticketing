@@ -23,13 +23,11 @@ export class QueueTokenService implements ITokenService {
 	constructor(
 		private readonly redisService: RedisService,
 		private readonly jwtService: JwtService,
-		private readonly queueProducer: QueueProducer,
 		private readonly queueRankingService: QueueRankingService,
 	) {}
 
 	/**
-	 * 순번 진입시 해당 토큰 status = PROCESSING 으로 변경
-	 * seat lock에서 해당 토큰을 value로 set
+	 * 토큰 생성과 동시에 waiting queue(sorted set)에 추가
 	 */
 	async createToken(
 		params: ICreateQueueTokenParams,
@@ -38,31 +36,14 @@ export class QueueTokenService implements ITokenService {
 		const payload = {
 			userId,
 			concertId,
-			// status: TokenStatus.WAITING, // sorted set 자체가 상태를 말해주므로 토큰에 정보 담을 필요없음.
 		};
-
 		const token = await this.jwtService.signJwtAsync(payload, QUEUE_TOKEN_TTL);
 
 		// sorted set
 		await this.queueRankingService.addToWaitingQueue(token);
-
-		// const cacheKey = getQueueTokenKey(token);
-		// await this.redisService.set(
-		// 	cacheKey,
-		// 	TokenStatus.WAITING, // 대기열 대기
-		// 	QUEUE_TOKEN_TTL,
-		// );
-
 		this.logger.log(
 			`Queue token created and stored in Redis for userId: ${userId}, concertId: ${concertId}`,
 		);
-
-		const job = await this.queueProducer.addJob(getQueueName(concertId), {
-			token,
-		}); // TODO: 같은 캐시키로 합치기
-		const jobCacheKey = getQueueTokenJobIdKey(token);
-		await this.redisService.set(jobCacheKey, job.id, QUEUE_TOKEN_TTL);
-
 		return { token };
 	}
 
@@ -71,16 +52,9 @@ export class QueueTokenService implements ITokenService {
 		token: string,
 		neededStatus: TokenStatus,
 	): Promise<boolean> {
-		// check expired
-		// const cacheKey = getQueueTokenKey(token);
-		// const tokenStatus = await this.redisService.get(cacheKey);
-		// console.log('queueTokenStatus', tokenStatus);
-		// if (!tokenStatus) {
-		// 	return false;
-		// }
-
 		// check sorted set: waitingQueue에 있으면 true
 		const queueStatus = await this.queueRankingService.checkQueueStatus(token);
+		console.log('queueStatus', queueStatus);
 		if (
 			neededStatus === TokenStatus.WAITING &&
 			queueStatus.waitingRank === -1
@@ -104,46 +78,9 @@ export class QueueTokenService implements ITokenService {
 	}
 
 	async deleteToken(token: string): Promise<boolean> {
-		const cacheKey = getQueueTokenKey(token);
-		const jobCacheKey = getQueueTokenJobIdKey(token);
-		const success = await this.redisService.delete(cacheKey, jobCacheKey);
-		if (!success) {
-			this.logger.error(`Failed to delete token: ${token}`);
-			return false;
-		}
+		// sorted set에서 삭제
+		await this.queueRankingService.deleteFromWaitingQueue(token);
+		await this.queueRankingService.deleteFromActiveQueue(token);
 		return true;
-	}
-
-	// no need
-	async checkAndUpdateTokenStatus(token: string): Promise<boolean> {
-		const isProcessing = await this._checkIsProcessing(token);
-		if (!isProcessing) {
-			return false;
-		}
-		// update token status WAITING -> PROCESSING
-		await this.redisService.set(
-			getQueueTokenKey(token),
-			TokenStatus.PROCESSING,
-			QUEUE_TOKEN_TTL,
-		);
-		return true;
-	}
-
-	// 대기열 진입 순서인지 job status 체크
-	private async _checkIsProcessing(token: string): Promise<boolean> {
-		const payload = await this.jwtService.verifyJwtAsync(token);
-		const concertId = payload.concertId;
-
-		const jobCacheKey = getQueueTokenJobIdKey(token);
-		const jobId = await this.redisService.get(jobCacheKey);
-		if (!jobId) {
-			return false;
-		}
-		const job = await this.queueProducer.getJob(getQueueName(concertId), jobId);
-
-		const jobState = await job.getState();
-		console.log('jobState', jobState);
-
-		return jobState === 'active';
 	}
 }

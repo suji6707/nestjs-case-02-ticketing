@@ -39,4 +39,8 @@ lerna-debug.log*
 
 /generated/prisma
 
+# temp
 docs/cache-strategy.md
+sample.py
+queue-ranking.service.int.spec.ts
+sellout-ranking.service.e2e.spec.ts
