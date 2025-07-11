@@ -45,6 +45,8 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 	],
 	exports: [
 		SeatLockService,
+		ReservationService,
+		{ provide: 'PaymentTokenService', useClass: PaymentTokenService },
 		{
 			provide: 'IReservationRepository',
 			useClass: ReservationPrismaRepository,

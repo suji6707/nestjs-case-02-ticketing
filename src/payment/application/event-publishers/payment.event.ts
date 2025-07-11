@@ -1,16 +1,12 @@
 import { IEvent } from 'src/common/interfaces/ievent-bus.interface';
 
 export interface PaymentSuccessData {
-	userId: number;
-	amount: number;
 	reservationId: number;
-	seatId: number;
-	concertId: number;
-	scheduleId: number;
 }
 
-export interface PaymentFailedData extends PaymentSuccessData {
-	errorMessage: string;
+export interface PaymentCancelData {
+	userId: number;
+	amount: number;
 }
 
 export class PaymentSuccessEvent implements IEvent {
@@ -24,12 +20,12 @@ export class PaymentSuccessEvent implements IEvent {
 	}
 }
 
-export class PaymentFailedEvent implements IEvent {
-	eventName = 'payment.failed';
+export class PaymentCancelEvent implements IEvent {
+	eventName = 'payment.cancel';
 	timestamp: Date;
-	data: PaymentFailedData;
+	data: PaymentCancelData;
 
-	constructor(data: PaymentFailedData) {
+	constructor(data: PaymentCancelData) {
 		this.timestamp = new Date();
 		this.data = data;
 	}

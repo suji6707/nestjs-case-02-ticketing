@@ -1,34 +1,38 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
-import { DataPlatformService } from 'src/data-platform/application/services/data-platform.service';
 import {
-	PaymentFailedEvent,
+	PaymentCancelEvent,
 	PaymentSuccessEvent,
 } from 'src/payment/application/event-publishers/payment.event';
+import { PaymentService } from 'src/payment/application/services/payment.service';
+import { ReservationService } from 'src/ticketing/application/services/reservation.service';
 
 @Injectable()
 export class PaymentEventListener {
 	private readonly logger = new Logger(PaymentEventListener.name);
 
-	constructor(private readonly dataPlatformService: DataPlatformService) {}
+	constructor(
+		private readonly paymentService: PaymentService,
+		private readonly reservationService: ReservationService,
+	) {}
 
 	// @@@TODO OnEventSafe 만들기.
 	@OnEvent('payment.success')
 	async onPaymentSuccess(event: PaymentSuccessEvent): Promise<void> {
 		this.logger.log('payment.success event received');
 
-		await this.dataPlatformService.send(event);
+		const { reservationId } = event.data;
+		await this.reservationService.confirmReservation(reservationId);
 		return;
 	}
 
-	@OnEvent('payment.failed')
-	async onPaymentFailed(event: PaymentFailedEvent): Promise<void> {
-		this.logger.log('payment.failed event received');
+	@OnEvent('payment.cancel')
+	async onPaymentCancel(event: PaymentCancelEvent): Promise<void> {
+		this.logger.log('payment.cancel event received');
 
-		// @@@TODO 결제관련 보상트랜잭션
-		// const payload = event.data;
-
-		await this.dataPlatformService.send(event);
+		// user point 복원 및 point history에 환불 기록 추가
+		const { userId, amount } = event.data;
+		await this.paymentService.cancelPayment(userId, amount);
 		return;
 	}
 }

@@ -1,12 +1,12 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { IEventBus } from 'src/common/interfaces/ievent-bus.interface';
 import { EVENT_BUS } from 'src/common/utils/constants';
-import { Reservation } from '../domain/models/reservation';
 import {
-	ReservationFailedData,
-	ReservationFailedEvent,
-	ReservationSuccessEvent,
-} from './reservation-event';
+	PaymentCancelData,
+	PaymentCancelEvent,
+} from 'src/payment/application/event-publishers/payment.event';
+import { Reservation } from '../domain/models/reservation';
+import { ReservationSuccessEvent } from './reservation-event';
 
 @Injectable()
 export class ReservationEventPublisher {
@@ -20,8 +20,8 @@ export class ReservationEventPublisher {
 		this.eventBus.publish(event);
 	}
 
-	publishReservationFailed(data: ReservationFailedData): void {
-		const event = new ReservationFailedEvent(data);
+	publishPaymentCancel(data: PaymentCancelData): void {
+		const event = new PaymentCancelEvent(data);
 		this.eventBus.publish(event);
 	}
 }

@@ -204,48 +204,49 @@ export class ReservationService {
 		return { reservation: updatedReservation, seat };
 	}
 
-	async confirmReservation(
-		userId: number,
-		reservationId: number,
-		paymentToken: string,
-	): Promise<PaymentResponseDto> {
-		// verify
-		const isValidToken = await this.paymentTokenService.verifyToken(
-			userId,
-			paymentToken,
-			TokenStatus.WAITING,
-		);
-		if (!isValidToken) {
-			throw new Error('Invalid payment token');
+	async confirmReservation(reservationId: number): Promise<PaymentResponseDto> {
+		try {
+			// 좌석 최종 배정
+			const { reservation, seat } = await this.txHost.withTransaction(
+				async () => {
+					return await this._confirmWithOptimisticLock(reservationId);
+				},
+			);
+
+			// 좌석예약 성공시 이벤트 발행 -> 결제 모듈 호출
+			if (reservation.status === ReservationStatus.CONFIRMED) {
+				this.reservationEventPublisher.publishReservationSuccess(reservation);
+			}
+
+			// redis sorted set 업데이트: 🟡매진 확인 후 duration 기록
+			const scheduleId = seat.scheduleId;
+			await this.selloutRankingService.updateRanking(scheduleId);
+
+			return {
+				reservation: {
+					id: reservation.id,
+					seatId: reservation.seatId,
+					purchasePrice: reservation.purchasePrice,
+					status: reservation.status,
+					paidAt: reservation.paidAt,
+				},
+			};
+		} catch (error) {
+			this.logger.error(error);
+			// 보상 트랜잭션 이벤트 호출
+			const reservation =
+				await this.reservationRepository.findOne(reservationId);
+			this.reservationEventPublisher.publishPaymentCancel({
+				userId: reservation.userId,
+				amount: reservation.purchasePrice,
+			});
+			/**
+			 * 이벤트 기반 아키텍처에서는 throw error 하지 않음
+			 * - 이벤트 발행자에게 전파되지 않도록 함.
+			 * - 결제 취소 이벤트로 보상 트랜잭션, 유저에게는 별도 알림(아메일/푸쉬)으로 상황 안내 or Polling 대기에서 확인
+			 */
+			// throw error;
 		}
-
-		// 좌석 최종 배정
-		const { reservation, seat } = await this.txHost.withTransaction(
-			async () => {
-				return await this._confirmWithOptimisticLock(reservationId);
-			},
-		);
-
-		// 좌석예약 성공시 이벤트 발행 -> 결제 모듈 호출
-		if (reservation.status === ReservationStatus.CONFIRMED) {
-			this.reservationEventPublisher.publishReservationSuccess(reservation);
-		}
-
-		await this.paymentTokenService.deleteToken(paymentToken);
-
-		// redis sorted set 업데이트: 🟡매진 확인 후 duration 기록
-		const scheduleId = seat.scheduleId;
-		await this.selloutRankingService.updateRanking(scheduleId);
-
-		return {
-			reservation: {
-				id: reservation.id,
-				seatId: reservation.seatId,
-				purchasePrice: reservation.purchasePrice,
-				status: reservation.status,
-				paidAt: reservation.paidAt,
-			},
-		};
 	}
 
 	async getInfo(reservationId: number): Promise<optional<Reservation>> {
