@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { OnEventSafe } from 'src/common/decorators/on-event-safe.decorator';
 import { DataPlatformService } from 'src/data-platform/application/services/data-platform.service';
 import { ReservationSuccessEvent } from 'src/ticketing/application/event-publishers/reservation-event';
 
@@ -9,8 +10,7 @@ export class ReservationEventListener {
 
 	constructor(private readonly dataPlatformService: DataPlatformService) {}
 
-	// @@@TODO OnEventSafe 만들기.
-	@OnEvent('reservation.success')
+	@OnEventSafe('reservation.success')
 	async onReservationSuccess(event: ReservationSuccessEvent): Promise<void> {
 		this.logger.log('reservation.success event received');
 

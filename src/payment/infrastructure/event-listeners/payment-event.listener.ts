@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { OnEvent } from '@nestjs/event-emitter';
+import { OnEventSafe } from 'src/common/decorators/on-event-safe.decorator';
 import {
 	PaymentCancelEvent,
 	PaymentSuccessEvent,
@@ -16,8 +17,7 @@ export class PaymentEventListener {
 		private readonly reservationService: ReservationService,
 	) {}
 
-	// @@@TODO OnEventSafe 만들기.
-	@OnEvent('payment.success')
+	@OnEventSafe('payment.success')
 	async onPaymentSuccess(event: PaymentSuccessEvent): Promise<void> {
 		this.logger.log('payment.success event received');
 
@@ -26,7 +26,7 @@ export class PaymentEventListener {
 		return;
 	}
 
-	@OnEvent('payment.cancel')
+	@OnEventSafe('payment.cancel')
 	async onPaymentCancel(event: PaymentCancelEvent): Promise<void> {
 		this.logger.log('payment.cancel event received');
 
