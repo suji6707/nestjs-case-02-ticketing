@@ -75,16 +75,8 @@ export class ReservationController {
 	@Post('/confirm')
 	@ApiOperation({ summary: '결제 요청' })
 	@ApiOkResponse({ type: PaymentResponseDto, description: '결제 요청 성공' })
-	async payment(
-		@Req() req: Request,
-		@Body() body: PaymentRequestDto,
-	): Promise<PaymentResponseDto> {
-		const userId = req.userId;
-		return this.reservationService.confirmReservation(
-			userId,
-			body.reservationId,
-			body.paymentToken,
-		);
+	async payment(@Body() body: PaymentRequestDto): Promise<PaymentResponseDto> {
+		return this.reservationService.confirmReservation(body.reservationId);
 	}
 
 	// 예약 현황 조회

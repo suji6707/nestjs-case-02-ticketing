@@ -1,4 +1,5 @@
 import { PrismaTransactionalClient } from '@nestjs-cls/transactional-adapter-prisma';
+import { PaymentSuccessData } from 'src/payment/application/event-publishers/payment.event';
 import {
 	Reservation,
 	ReservationProps,
@@ -17,4 +18,5 @@ export interface IReservationRepository {
 		reservation: Reservation,
 		expectedStatus: ReservationStatus,
 	): Promise<Reservation>;
+	getReservationContext(reservationId: number): Promise<PaymentSuccessData>;
 }
