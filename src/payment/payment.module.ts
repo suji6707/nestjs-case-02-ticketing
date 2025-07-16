@@ -5,12 +5,13 @@ import { PaymentEventPublisher } from './application/event-publishers/payment-ev
 import { PaymentService } from './application/services/payment.service';
 import { PaymentController } from './constrollers/payment.controller';
 import { PaymentEventListener } from './infrastructure/event-listeners/payment-event.listener';
+import { PaymentKafkaEventConsumer } from './infrastructure/event-listeners/payment-kafka-event.consumer';
 import { PointHistoryPrismaRepository } from './infrastructure/persistence/point-history.repository';
 import { UserPointPrismaRepository } from './infrastructure/persistence/user-point.repository';
 
 @Module({
 	imports: [forwardRef(() => TicketingModule), DataPlatformModule],
-	controllers: [PaymentController],
+	controllers: [PaymentController, PaymentKafkaEventConsumer],
 	providers: [
 		PaymentService,
 		{ provide: 'IUserPointRepository', useClass: UserPointPrismaRepository },

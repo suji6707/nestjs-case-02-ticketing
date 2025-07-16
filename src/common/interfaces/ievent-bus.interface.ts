@@ -4,6 +4,10 @@ export interface IEvent {
 	data: any;
 }
 
+export interface IKafkaEvent extends IEvent {
+	eventId: string;
+}
+
 export type EventHandler<T extends IEvent> = (event: T) => void;
 
 export interface IEventBus {

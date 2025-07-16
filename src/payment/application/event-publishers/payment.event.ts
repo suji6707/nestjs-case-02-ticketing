@@ -1,4 +1,7 @@
-import { IEvent } from 'src/common/interfaces/ievent-bus.interface';
+import {
+	IEvent,
+	IKafkaEvent,
+} from 'src/common/interfaces/ievent-bus.interface';
 
 export interface PaymentSuccessData {
 	reservationId: number;
@@ -29,4 +32,18 @@ export class PaymentCancelEvent implements IEvent {
 		this.timestamp = new Date();
 		this.data = data;
 	}
+}
+
+export class PaymentSuccessKafkaEvent
+	extends PaymentSuccessEvent
+	implements IKafkaEvent
+{
+	eventId: string;
+}
+
+export class PaymentCancelKafkaEvent
+	extends PaymentCancelEvent
+	implements IKafkaEvent
+{
+	eventId: string;
 }
