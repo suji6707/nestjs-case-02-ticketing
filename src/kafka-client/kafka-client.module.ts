@@ -16,10 +16,11 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 						clientId: 'ticketing-producer',
 						brokers: ['localhost:9092', 'localhost:9093', 'localhost:9094'],
 					},
-					consumer: {
-						// consumer
-						groupId: 'ticketing-consumer-group',
-					},
+					// 🟡🟡 KafkaEventBus의 kafkaClient. 프로듀서 역할만 하므로 consumer 설정 안씀.
+					// consumer: {
+					// 	// consumer
+					// 	groupId: 'ticketing-consumer-group',
+					// },
 				},
 			},
 		]),
