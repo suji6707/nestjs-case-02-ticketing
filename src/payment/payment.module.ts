@@ -6,6 +6,7 @@ import { PaymentService } from './application/services/payment.service';
 import { PaymentController } from './constrollers/payment.controller';
 import { PaymentEventListener } from './infrastructure/event-listeners/payment-event.listener';
 import { PaymentKafkaEventConsumer } from './infrastructure/event-listeners/payment-kafka-event.consumer';
+import { PaymentTransactionPrismaRepository } from './infrastructure/persistence/payment-transaction.repository';
 import { PointHistoryPrismaRepository } from './infrastructure/persistence/point-history.repository';
 import { UserPointPrismaRepository } from './infrastructure/persistence/user-point.repository';
 
@@ -18,6 +19,10 @@ import { UserPointPrismaRepository } from './infrastructure/persistence/user-poi
 		{
 			provide: 'IPointHistoryRepository',
 			useClass: PointHistoryPrismaRepository,
+		},
+		{
+			provide: 'IPaymentTransactionRepository',
+			useClass: PaymentTransactionPrismaRepository,
 		},
 		PaymentEventPublisher,
 		PaymentEventListener,
