@@ -21,3 +21,24 @@ export class ReservationSuccessKafkaEvent
 {
 	eventId: string;
 }
+
+export interface ReservationFailureData {
+	reservationId: number;
+	userId: number;
+	seatId: number;
+	amount: number;
+	paymentTxId: string;
+	reason: string;
+}
+
+export class ReservationFailureKafkaEvent implements IKafkaEvent {
+	eventName = 'reservation.failure';
+	timestamp: Date;
+	data: ReservationFailureData;
+	eventId: string;
+
+	constructor(data: ReservationFailureData) {
+		this.timestamp = new Date();
+		this.data = data;
+	}
+}

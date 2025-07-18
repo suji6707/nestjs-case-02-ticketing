@@ -2,6 +2,7 @@ import { TransactionHost } from '@nestjs-cls/transactional';
 import { TransactionalAdapterPrisma } from '@nestjs-cls/transactional-adapter-prisma';
 import { Inject, Injectable } from '@nestjs/common';
 import { Logger } from '@nestjs/common';
+import { PaymentTransactionEntity } from '@prisma/client';
 import { IDistributedLockService } from 'src/common/interfaces/idistributed-lock.service';
 import {
 	DISTRIBUTED_LOCK_SERVICE,
@@ -16,7 +17,12 @@ import {
 import { TokenStatus } from 'src/ticketing/application/domain/models/token';
 import { IReservationRepository } from 'src/ticketing/application/domain/repositories/ireservation.repository';
 import { PaymentTokenService } from 'src/ticketing/application/services/payment-token.service';
+import { v4 as uuidv4 } from 'uuid';
 import { UserPoint } from '../domain/models/user-point';
+import {
+	IPaymentTransactionRepository,
+	PaymentTransactionStatus,
+} from '../domain/repositories/ipayment-transaction.repository';
 import {
 	IPointHistoryRepository,
 	PointHistoryType,
@@ -36,6 +42,8 @@ export class PaymentService {
 		private readonly pointHistoryRepository: IPointHistoryRepository,
 		@Inject('IReservationRepository')
 		private readonly reservationRepository: IReservationRepository,
+		@Inject('IPaymentTransactionRepository')
+		private readonly paymentTransactionRepository: IPaymentTransactionRepository,
 		@Inject('PaymentTokenService')
 		private readonly paymentTokenService: PaymentTokenService,
 		@Inject(DISTRIBUTED_LOCK_SERVICE)
@@ -110,7 +118,12 @@ export class PaymentService {
 		userId: number,
 		reservationId: number,
 		paymentToken: string,
+		paymentTxId?: string,
+		retryCount = 0,
 	): Promise<PaymentProcessResponseDto> {
+		if (!paymentTxId) {
+			paymentTxId = uuidv4();
+		}
 		// verify
 		const isValidToken = await this.paymentTokenService.verifyToken(
 			userId,
@@ -121,31 +134,28 @@ export class PaymentService {
 			throw new Error('Invalid payment token');
 		}
 
-		// 잔액 차감
+		// 예약 정보 조회
 		const reservation = await this.reservationRepository.findOne(reservationId);
+		const seatId = reservation.seatId;
 		const amount = reservation.purchasePrice;
 
-		// 분산락 + X-lock
-		const updatedUserPoint = await this.distributedLockService.withLock(
-			getPaymentLockKey(userId),
-			PAYMENT_LOCK_TTL,
-			async () => {
-				return await this._useTransaction(userId, amount);
-			},
-			10,
-			100,
-		);
-		await this.paymentTokenService.deleteToken(paymentToken); // 결제 완료시 임시 결제토큰 삭제
+		// 첫번째 시도인 경우 payment.try 이벤트 발행
+		if (retryCount === 0) {
+			this.paymentEventPublisher.publishPaymentTry(
+				reservationId,
+				userId,
+				seatId,
+				amount,
+				paymentTxId,
+				paymentToken,
+			);
+		}
 
-		// 이벤트 발행
-		await this.paymentEventPublisher.publishPaymentSuccess(reservationId);
-
-		// TODO: 클라이언트 폴링으로 예약 상태 확인 (reservation.status)
+		// 즉시 응답 반환. 클라이언트 폴링으로 paymentTransaction.status 확인
 		return {
-			balance: updatedUserPoint.balance,
-			reservationId,
-			status: 'PAYMENT_COMPLETED',
-			message: '결제가 완료되었습니다. 예약 확정은 잠시 후 완료됩니다.',
+			paymentTxId,
+			status: 'PAYMENT_PROCESSING',
+			message: '결제 처리 중입니다. 잠시 후 결과를 확인해주세요.',
 		};
 	}
 
@@ -166,6 +176,125 @@ export class PaymentService {
 		});
 	}
 
+	// =========================== KAFKA EVENT =======================================
+	async createPaymentTransaction(
+		paymentTxId: string,
+		userId: number,
+		seatId: number,
+	): Promise<void> {
+		await this.paymentTransactionRepository.create(
+			paymentTxId,
+			userId,
+			seatId,
+			PaymentTransactionStatus.PENDING,
+		);
+	}
+
+	async executePayment(
+		reservationId: number,
+		userId: number,
+		seatId: number,
+		amount: number,
+		paymentTxId: string,
+		paymentToken: string,
+	): Promise<void> {
+		// 분산락 + X-lock
+		await this.distributedLockService.withLock(
+			getPaymentLockKey(userId),
+			PAYMENT_LOCK_TTL,
+			async () => {
+				return await this._useTransaction(userId, amount);
+			},
+			10,
+			100,
+		);
+		await this.paymentTokenService.deleteToken(paymentToken); // 결제 완료시 임시 결제토큰 삭제
+
+		// 이벤트 발행
+		this.paymentEventPublisher.publishPaymentSuccess(
+			reservationId,
+			userId,
+			seatId,
+			amount,
+			paymentTxId,
+		);
+	}
+
+	async publishPaymentFailure(
+		reservationId: number,
+		userId: number,
+		paymentTxId: string,
+		reason: string,
+	): Promise<void> {
+		// 1. 트랜잭션 상태 업데이트
+		await this.paymentTransactionRepository.updateStatus(
+			paymentTxId,
+			PaymentTransactionStatus.FAILURE,
+		);
+
+		// 2. 실패 이벤트 발행
+		this.paymentEventPublisher.publishPaymentFailure(
+			reservationId,
+			userId,
+			paymentTxId,
+			reason,
+		);
+	}
+
+	async publishPaymentRetry(
+		reservationId: number,
+		userId: number,
+		seatId: number,
+		amount: number,
+		paymentTxId: string,
+		paymentToken: string,
+		retryCount: number,
+		lastFailureReason: string,
+	): Promise<void> {
+		// 1. 트랜잭션 상태 업데이트
+		await this.paymentTransactionRepository.updateStatus(
+			paymentTxId,
+			PaymentTransactionStatus.RETRYING,
+			retryCount,
+			lastFailureReason,
+		);
+		// 2. 재시도 이벤트 발행
+		this.paymentEventPublisher.publishPaymentRetry(
+			reservationId,
+			userId,
+			seatId,
+			amount,
+			paymentTxId,
+			paymentToken,
+			retryCount,
+			lastFailureReason,
+		);
+	}
+
+	async publishPaymentCancel(
+		reservationId: number,
+		userId: number,
+		seatId: number,
+		amount: number,
+		paymentTxId: string,
+		reason: string,
+	): Promise<void> {
+		// 1. 트랜잭션 상태 업데이트
+		await this.paymentTransactionRepository.updateStatus(
+			paymentTxId,
+			PaymentTransactionStatus.CANCEL,
+		);
+		// 2. 취소 이벤트 발행
+		this.paymentEventPublisher.publishPaymentCancel(
+			reservationId,
+			userId,
+			seatId,
+			amount,
+			paymentTxId,
+			reason,
+		);
+	}
+
 	async cancelPayment(userId: number, amount: number): Promise<UserPoint> {
 		return await this.txHost.withTransaction(async () => {
 			const userPoint = await this.userPointRepository.selectForUpdate(userId);
@@ -183,6 +312,14 @@ export class PaymentService {
 		});
 	}
 
+	// =========================== KAFKA EVENT HELPER FUNC =======================================
+	async findPendingTransaction(
+		paymentTxId: string,
+	): Promise<PaymentTransactionEntity | null> {
+		return this.paymentTransactionRepository.findByPaymentTxId(paymentTxId);
+	}
+
+	// 기타
 	async getBalance(userId: number): Promise<PointUseResponseDto> {
 		const userPoint = await this.userPointRepository.findOne(userId);
 		if (!userPoint) {
