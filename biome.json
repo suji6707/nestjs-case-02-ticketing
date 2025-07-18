@@ -17,7 +17,8 @@
 		"rules": {
 			"recommended": true,
 			"style": {
-				"useImportType": "off"
+				"useImportType": "off",
+				"noParameterAssign": "off"
 			},
 			"suspicious": {
 				"noDoubleEquals": "off",
