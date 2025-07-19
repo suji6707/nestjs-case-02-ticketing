@@ -32,7 +32,8 @@ export class PaymentEventPublisher {
 			paymentTxId,
 			paymentToken,
 		});
-		this.eventBus.publish(event);
+		const messageKey = `${userId}-${seatId}`;
+		this.eventBus.publish(event, messageKey);
 	}
 
 	publishPaymentSuccess(
@@ -49,7 +50,8 @@ export class PaymentEventPublisher {
 			amount,
 			paymentTxId,
 		});
-		this.eventBus.publish(event);
+		const messageKey = `${userId}-${seatId}`;
+		this.eventBus.publish(event, messageKey);
 	}
 
 	publishPaymentRetry(
@@ -72,7 +74,8 @@ export class PaymentEventPublisher {
 			retryCount,
 			lastFailureReason,
 		});
-		this.eventBus.publish(event);
+		const messageKey = `${userId}-${seatId}`;
+		this.eventBus.publish(event, messageKey);
 	}
 
 	publishPaymentFailure(
@@ -87,7 +90,8 @@ export class PaymentEventPublisher {
 			paymentTxId,
 			reason,
 		});
-		this.eventBus.publish(event);
+		const messageKey = `${userId}`;
+		this.eventBus.publish(event, messageKey);
 	}
 
 	publishPaymentCancel(
@@ -106,7 +110,7 @@ export class PaymentEventPublisher {
 			paymentTxId,
 			reason,
 		});
-		// 🟢TODO: 메시지키: userId-seatId
-		this.eventBus.publish(event);
+		const messageKey = `${userId}-${seatId}`;
+		this.eventBus.publish(event, messageKey);
 	}
 }
