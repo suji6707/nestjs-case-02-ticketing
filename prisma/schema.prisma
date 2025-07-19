@@ -109,13 +109,29 @@ model ReservationEntity {
 }
 
 model EventLogEntity {
-  id        Int        @id @default(autoincrement())
-  eventName String     @map("event_name")
+  id        Int      @id @default(autoincrement())
+  eventName String   @map("event_name")
   timestamp DateTime
   data      Json
-  createdAt DateTime   @default(now()) @map("created_at")
+  createdAt DateTime @default(now()) @map("created_at")
 
   @@index([eventName])
   @@index([timestamp])
   @@map("event_logs")
+}
+
+model PaymentTransactionEntity {
+  id                Int      @id @default(autoincrement())
+  paymentTxId       String   @map("payment_tx_id") // 멱등성 키
+  userId            Int      @map("user_id")
+  seatId            Int      @map("seat_id")
+  status            Int      @db.TinyInt
+  retryCount        Int      @default(0) @map("retry_count")
+  lastFailureReason String?  @map("last_failure_reason")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @default(now()) @map("updated_at")
+
+  @@index([userId, seatId]) 
+  @@unique([paymentTxId]) // 중복/동시 결제 방지
+  @@map("payment_transactions")
 }

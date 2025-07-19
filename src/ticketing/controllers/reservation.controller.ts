@@ -72,12 +72,12 @@ export class ReservationController {
 	}
 
 	// 결제 요청 및 좌석 임시배정, 임시 결제 토큰 삭제
-	@Post('/confirm')
-	@ApiOperation({ summary: '결제 요청' })
-	@ApiOkResponse({ type: PaymentResponseDto, description: '결제 요청 성공' })
-	async payment(@Body() body: PaymentRequestDto): Promise<PaymentResponseDto> {
-		return this.reservationService.confirmReservation(body.reservationId);
-	}
+	// @Post('/confirm')
+	// @ApiOperation({ summary: '결제 요청' })
+	// @ApiOkResponse({ type: PaymentResponseDto, description: '결제 요청 성공' })
+	// async payment(@Body() body: PaymentRequestDto): Promise<PaymentResponseDto> {
+	// 	return this.reservationService.confirmReservation(body.reservationId);
+	// }
 
 	// 예약 현황 조회
 	@Get('/:reservationId')

@@ -1,0 +1,160 @@
+version: '3.8'
+
+services:
+  # Kafka 클러스터 (기존과 동일)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    hostname: zookeeper
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  broker1:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: broker1
+    container_name: broker1
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker1:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+
+  broker2:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: broker2
+    container_name: broker2
+    ports:
+      - "9093:9093"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker2:29093,PLAINTEXT_HOST://localhost:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+
+  broker3:
+    image: confluentinc/cp-kafka:7.6.0
+    hostname: broker3
+    container_name: broker3
+    ports:
+      - "9094:9094"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 3
+      KAFKA_ZOOKEEPER_CONNECT: 'zookeeper:2181'
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://broker3:29094,PLAINTEXT_HOST://localhost:9094
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 3
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 2
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 3
+
+  # 공통 데이터베이스 (또는 서비스별 분리)
+  postgres:
+    image: postgres:15
+    container_name: postgres
+    environment:
+      POSTGRES_DB: ticketing
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+
+  # API Gateway (HTTP 요청 처리, 라우팅)
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.api-gateway
+    container_name: api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://admin:password@postgres:5432/ticketing
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - PAYMENT_SERVICE_URL=http://payment-service:3001
+      - RESERVATION_SERVICE_URL=http://reservation-service:3002
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - ticketing-network
+
+  # Payment Service (결제 처리 + Kafka Producer)
+  payment-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.payment-service
+    container_name: payment-service
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://admin:password@postgres:5432/ticketing
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=broker1:29092,broker2:29093,broker3:29094
+      - KAFKA_CLIENT_ID=payment-service-producer
+    depends_on:
+      - postgres
+      - redis
+      - broker1
+      - broker2
+      - broker3
+    networks:
+      - ticketing-network
+
+  # Reservation Service (예약 처리 + Kafka Consumer)
+  reservation-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.reservation-service
+    container_name: reservation-service
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://admin:password@postgres:5432/ticketing
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - KAFKA_BROKERS=broker1:29092,broker2:29093,broker3:29094
+      - KAFKA_CLIENT_ID=reservation-service-consumer
+      - KAFKA_GROUP_ID=reservation-service-group
+    depends_on:
+      - postgres
+      - redis
+      - broker1
+      - broker2
+      - broker3
+    networks:
+      - ticketing-network
+
+volumes:
+  postgres_data:
+
+networks:
+  ticketing-network:
+    driver: bridge

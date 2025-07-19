@@ -204,7 +204,13 @@ export class ReservationService {
 		return { reservation: updatedReservation, seat };
 	}
 
-	async confirmReservation(reservationId: number): Promise<PaymentResponseDto> {
+	async confirmReservation(
+		reservationId: number,
+		userId: number,
+		seatId: number,
+		amount: number,
+		paymentTxId: string,
+	): Promise<PaymentResponseDto> {
 		try {
 			// 좌석 최종 배정
 			const { reservation, seat } = await this.txHost.withTransaction(
@@ -233,12 +239,17 @@ export class ReservationService {
 			};
 		} catch (error) {
 			this.logger.error(error);
-			// 보상 트랜잭션 이벤트 호출
-			const reservation =
-				await this.reservationRepository.findOne(reservationId);
-			this.reservationEventPublisher.publishPaymentCancel({
-				userId: reservation.userId,
-				amount: reservation.purchasePrice,
+			// 보상 트랜잭션 이벤트 호출. 최대한 많은 파라미터 정보를 넘겨서 DB 호출 최소화
+			// const reservation =
+			// 	await this.reservationRepository.findOne(reservationId);
+
+			this.reservationEventPublisher.publishReservationFailure({
+				reservationId,
+				userId,
+				seatId,
+				amount,
+				paymentTxId,
+				reason: error.message, // 최종 예약 실패 이유
 			});
 			/**
 			 * 이벤트 기반 아키텍처에서는 throw error 하지 않음

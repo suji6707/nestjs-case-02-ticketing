@@ -4,6 +4,8 @@ import { Global, Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 import { Redis } from 'ioredis';
 import { ClsModule } from 'nestjs-cls';
+import { KafkaClientModule } from 'src/kafka-client/kafka-client.module';
+import { KafkaEventBus } from './services/events/kafka-event-bus';
 import { NestEventBus } from './services/events/nest-event-bus';
 import { PrismaService } from './services/prisma.service';
 import { DistributedLockService } from './services/redis/distributed-lock.service';
@@ -17,6 +19,7 @@ import {
 @Global()
 @Module({
 	imports: [
+		KafkaClientModule,
 		ClsModule.forRoot({
 			plugins: [
 				new ClsPluginTransactional({
@@ -51,7 +54,7 @@ import {
 		},
 		{
 			provide: EVENT_BUS,
-			useClass: NestEventBus,
+			useClass: KafkaEventBus, // NestEventBus 대신
 		},
 	],
 	exports: [PrismaService, RedisService, DISTRIBUTED_LOCK_SERVICE, EVENT_BUS],
