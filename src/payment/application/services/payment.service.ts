@@ -119,7 +119,6 @@ export class PaymentService {
 		reservationId: number,
 		paymentToken: string,
 		paymentTxId?: string,
-		retryCount = 0,
 	): Promise<PaymentProcessResponseDto> {
 		if (!paymentTxId) {
 			paymentTxId = uuidv4();
@@ -139,17 +138,15 @@ export class PaymentService {
 		const seatId = reservation.seatId;
 		const amount = reservation.purchasePrice;
 
-		// 첫번째 시도인 경우 payment.try 이벤트 발행
-		if (retryCount === 0) {
-			this.paymentEventPublisher.publishPaymentTry(
-				reservationId,
-				userId,
-				seatId,
-				amount,
-				paymentTxId,
-				paymentToken,
-			);
-		}
+		// payment.try 이벤트 발행 (여기선 항상 첫번째 시도. 재시도는 payment.retry 이벤트에서)
+		this.paymentEventPublisher.publishPaymentTry(
+			reservationId,
+			userId,
+			seatId,
+			amount,
+			paymentTxId,
+			paymentToken,
+		);
 
 		// 즉시 응답 반환. 클라이언트 폴링으로 paymentTransaction.status 확인
 		return {

@@ -58,7 +58,7 @@ export class PaymentKafkaEventConsumer {
 				`[Kafka] Payment processing completed successfully - paymentTxId: ${paymentTxId}`,
 			);
 		} catch (error) {
-			// 에러 발생 시 payment.failure 이벤트 발행
+			// 에러 발생 시 payment.retry 이벤트 발행
 			this.logger.error(
 				`[Kafka] Failed to process payment.try event: ${error.message}`,
 			);
