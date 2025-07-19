@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "9999:8080"
+    depends_on:
+      - broker1
+      - broker2
+      - broker3
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: broker1:29092,broker2:29093,broker3:29094
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper:2181
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.6.0
     hostname: zookeeper
