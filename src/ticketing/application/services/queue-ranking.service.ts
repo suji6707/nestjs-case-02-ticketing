@@ -43,41 +43,74 @@ export class QueueRankingService implements OnModuleInit {
 	}
 
 	/**
-	 * Queue 업데이트: max count만큼 찰 때까지 waiting -> active로 전환
-	 * 🔒 분산락으로 동시성 제어
+	 * 🔄 대기열 큐 전체 업데이트
+	 * 분산락으로 동시성 제어하되, 락 범위를 최소화하여 성능 최적화
 	 */
 	async updateEntireQueue(): Promise<void> {
-		// 🔒 큐 업데이트 분산락 적용
+		// 🎯 락 외부에서 상태 확인 (읽기 작업)
+		const maxCount = Number(
+			await this.redisService.get(maxActiveUsersCountKey()),
+		);
+		const activeCount = Number(await this.redisService.zcard(activeQueueKey()));
+		const waitingCount = Number(
+			await this.redisService.zcard(waitingQueueKey()),
+		);
+
+		// 이동 가능한 사용자 수 미리 계산
+		const moveableCount = Math.min(maxCount - activeCount, waitingCount);
+		if (moveableCount <= 0) {
+			return; // 이동할 사용자가 없으면 락 없이 조기 반환
+		}
+
+		// 🔒 실제 큐 조작만 락으로 보호 (쓰기 작업만)
 		await this.distributedLockService.withLock(
 			getQueueUpdateLockKey(),
-			5000, // 5초 TTL
+			5000, // TTL을 5초 → 3초로 단축
 			async () => {
-				const maxCount = Number(
-					await this.redisService.get(maxActiveUsersCountKey()),
-				);
-				let activeCount = Number(
+				// 락 내부에서 다시 한번 상태 확인 (Double-checked locking)
+				const currentActiveCount = Number(
 					await this.redisService.zcard(activeQueueKey()),
 				);
-				let waitingCount = Number(
+				const currentWaitingCount = Number(
 					await this.redisService.zcard(waitingQueueKey()),
 				);
 
-				while (activeCount < maxCount && waitingCount > 0) {
-					// waiting queue의 1순위를 active queue로 전환
-					const token = (
-						await this.redisService.zrange(waitingQueueKey(), 0, 0)
-					)[0];
-					console.log('1st rank token: ', token?.slice(-10));
-					await this.redisService.zrem(waitingQueueKey(), token);
-					await this.redisService.zadd(activeQueueKey(), Date.now(), token);
-					// update count
-					activeCount = Number(await this.redisService.zcard(activeQueueKey()));
-					waitingCount = Number(
-						await this.redisService.zcard(waitingQueueKey()),
+				const actualMoveableCount = Math.min(
+					maxCount - currentActiveCount,
+					currentWaitingCount,
+				);
+
+				// 배치로 한번에 처리하여 Redis 호출 횟수 최소화
+				if (actualMoveableCount > 0) {
+					// [token1, score1, token2, score2, ...]
+					const tokensToMove = await this.redisService.zrange(
+						waitingQueueKey(),
+						0,
+						actualMoveableCount - 1,
+						false,
 					);
+					console.log('tokensToMove', tokensToMove);
+
+					if (tokensToMove.length > 0) {
+						// 배치 처리: Pipeline 사용
+						const pipeline = this.redisService.pipeline();
+
+						for (let i = 0; i < tokensToMove.length; i++) {
+							const token = tokensToMove[i];
+							// Active queue에 추가
+							pipeline.zadd(activeQueueKey(), Date.now(), token);
+							// Waiting queue에서 제거
+							pipeline.zrem(waitingQueueKey(), token);
+						}
+
+						await pipeline.exec();
+
+						this.logger.log(
+							`✅ Moved ${actualMoveableCount} users from waiting to active queue`,
+						);
+					}
 				}
 			},
-			3, // 최대 3회 재시도
 		);
 	}
 
