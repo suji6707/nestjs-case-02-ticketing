@@ -1,7 +1,10 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { IDistributedLockService } from 'src/common/interfaces/idistributed-lock.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
+import { DISTRIBUTED_LOCK_SERVICE } from 'src/common/utils/constants';
 import {
 	activeQueueKey,
+	getQueueUpdateLockKey,
 	maxActiveUsersCountKey,
 	waitingQueueKey,
 } from 'src/common/utils/redis-keys';
@@ -10,7 +13,11 @@ import {
 export class QueueRankingService implements OnModuleInit {
 	private readonly logger = new Logger(QueueRankingService.name);
 
-	constructor(private readonly redisService: RedisService) {}
+	constructor(
+		private readonly redisService: RedisService,
+		@Inject(DISTRIBUTED_LOCK_SERVICE)
+		private readonly distributedLockService: IDistributedLockService,
+	) {}
 
 	async onModuleInit(): Promise<void> {
 		await this.initialize();
@@ -37,25 +44,41 @@ export class QueueRankingService implements OnModuleInit {
 
 	/**
 	 * Queue 업데이트: max count만큼 찰 때까지 waiting -> active로 전환
+	 * 🔒 분산락으로 동시성 제어
 	 */
 	async updateEntireQueue(): Promise<void> {
-		const maxCount = Number(
-			await this.redisService.get(maxActiveUsersCountKey()),
+		// 🔒 큐 업데이트 분산락 적용
+		await this.distributedLockService.withLock(
+			getQueueUpdateLockKey(),
+			5000, // 5초 TTL
+			async () => {
+				const maxCount = Number(
+					await this.redisService.get(maxActiveUsersCountKey()),
+				);
+				let activeCount = Number(
+					await this.redisService.zcard(activeQueueKey()),
+				);
+				let waitingCount = Number(
+					await this.redisService.zcard(waitingQueueKey()),
+				);
+
+				while (activeCount < maxCount && waitingCount > 0) {
+					// waiting queue의 1순위를 active queue로 전환
+					const token = (
+						await this.redisService.zrange(waitingQueueKey(), 0, 0)
+					)[0];
+					console.log('1st rank token: ', token?.slice(-10));
+					await this.redisService.zrem(waitingQueueKey(), token);
+					await this.redisService.zadd(activeQueueKey(), Date.now(), token);
+					// update count
+					activeCount = Number(await this.redisService.zcard(activeQueueKey()));
+					waitingCount = Number(
+						await this.redisService.zcard(waitingQueueKey()),
+					);
+				}
+			},
+			3, // 최대 3회 재시도
 		);
-		let activeCount = Number(await this.redisService.zcard(activeQueueKey()));
-		let waitingCount = Number(await this.redisService.zcard(waitingQueueKey()));
-		while (activeCount < maxCount && waitingCount > 0) {
-			// waiting queue의 1순위를 active queue로 전환
-			const token = (
-				await this.redisService.zrange(waitingQueueKey(), 0, 0)
-			)[0];
-			console.log('1st rank token: ', token?.slice(-10));
-			await this.redisService.zrem(waitingQueueKey(), token);
-			await this.redisService.zadd(activeQueueKey(), Date.now(), token);
-			// update count
-			activeCount = Number(await this.redisService.zcard(activeQueueKey()));
-			waitingCount = Number(await this.redisService.zcard(waitingQueueKey()));
-		}
 	}
 
 	/** 대기 순번 확인 폴링시 호출
