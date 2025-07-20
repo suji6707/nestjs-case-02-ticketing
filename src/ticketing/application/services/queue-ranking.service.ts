@@ -49,7 +49,7 @@ export class QueueRankingService implements OnModuleInit {
 			const token = (
 				await this.redisService.zrange(waitingQueueKey(), 0, 0)
 			)[0];
-			console.log('1st rank token: ', token.slice(-10));
+			console.log('1st rank token: ', token?.slice(-10));
 			await this.redisService.zrem(waitingQueueKey(), token);
 			await this.redisService.zadd(activeQueueKey(), Date.now(), token);
 			// update count

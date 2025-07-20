@@ -35,12 +35,18 @@ async function bootstrap(): Promise<void> {
 			},
 			consumer: {
 				groupId: 'ticketing-consumer-group', // 통합 이벤트 그룹
+				// Consumer 초기화 시간 단축 설정
+				sessionTimeout: 10000, // 기본 30초 → 10초
+				heartbeatInterval: 1000, // 기본 3초 → 1초
+				maxWaitTimeInMs: 1000, // 기본 5초 → 1초
+				rebalanceTimeout: 5000, // 기본 60초 → 5초
 			},
 		},
 	});
 
+	const start = Date.now();
 	await app.startAllMicroservices();
-	logger.log('🎧 Kafka Consumer is running...');
+	logger.log(`🎧 Kafka Consumer is running... ${Date.now() - start}ms`);
 
 	await app.listen(3001);
 	logger.log('🌐 HTTP Server is running on http://localhost:3001');

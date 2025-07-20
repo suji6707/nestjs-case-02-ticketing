@@ -84,26 +84,4 @@ export class ReservationPrismaRepository implements IReservationRepository {
 			throw new Error('Failed to update reservation 2');
 		}
 	}
-
-	async getReservationContext(
-		reservationId: number,
-	): Promise<PaymentSuccessData> {
-		const result = await this.txHost.tx.$queryRaw<PaymentSuccessData[]>`
-			SELECT 
-			rv.id as reservationId,
-			rv.user_id as userId,
-			rv.seat_id as seatId,
-			rv.purchase_price as amount,
-			cs.id as scheduleId,
-			cs.concert_id as concertId 
-		FROM reservations rv
-		JOIN seats on rv.seat_id = seats.id
-		JOIN concert_schedules cs on seats.schedule_id = cs.id
-		WHERE rv.id = ${reservationId};
-		`;
-		if (result.length > 0) {
-			return result[0];
-		}
-		throw new BadRequestException('NOT_FOUND_RESERVATION');
-	}
 }

@@ -52,12 +52,37 @@ export class KafkaEventBus implements IEventBus {
 	// }
 
 	async onModuleInit(): Promise<void> {
-		// Kafka 연결 대기
-		await this.kafkaClient.connect();
-		// 연결 후 producer 초기화
-		this.producer = this.kafkaClient.producer;
-		await this.producer.connect();
-		this.logger.log('Kafka EventBus connected');
+		const startTime = Date.now();
+		this.logger.log('🚀 Starting Kafka EventBus initialization...');
+
+		try {
+			// Kafka Client 연결
+			const clientConnectStart = Date.now();
+			await this.kafkaClient.connect();
+			this.logger.log(
+				`✅ Kafka Client connected in ${Date.now() - clientConnectStart}ms`,
+			);
+
+			// Producer 초기화 및 연결
+			const producerStart = Date.now();
+			this.producer = this.kafkaClient.producer;
+			await this.producer.connect();
+			this.logger.log(
+				`✅ Producer connected in ${Date.now() - producerStart}ms`,
+			);
+
+			const totalTime = Date.now() - startTime;
+			this.logger.log(
+				`🎉 Kafka EventBus connected successfully in ${totalTime}ms`,
+			);
+		} catch (error) {
+			const totalTime = Date.now() - startTime;
+			this.logger.error(
+				`❌ Kafka EventBus initialization failed after ${totalTime}ms:`,
+				error,
+			);
+			throw error;
+		}
 	}
 
 	async onModuleDestroy(): Promise<void> {

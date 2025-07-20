@@ -52,7 +52,7 @@ export class QueueTokenService implements ITokenService {
 		token: string,
 		neededStatus: TokenStatus,
 	): Promise<boolean> {
-		// check sorted set: waitingQueue에 있으면 true
+		// check sorted set: activeQueue에 있으면 true
 		const queueStatus = await this.queueRankingService.checkQueueStatus(token);
 		console.log('queueStatus', queueStatus);
 		if (
