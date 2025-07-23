@@ -13,6 +13,7 @@ import { EventSearchController } from './controllers/event-search.controller';
 import { RankingController } from './controllers/ranking.controller';
 import { ReservationController } from './controllers/reservation.controller';
 import { ReservationEventListener } from './infrastructure/event-listeners/reservation-event.listener';
+import { ReservationKafkaEventConsumer } from './infrastructure/event-listeners/reservation-kafka-event.consumer';
 import { QueueProducer } from './infrastructure/external/queue-producer.service';
 import { ConcertPrismaRepository } from './infrastructure/persistence/concert.prisma.repository';
 import { ReservationPrismaRepository } from './infrastructure/persistence/reservation.prisma.repository';
@@ -42,6 +43,7 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 		EventSearchController,
 		ReservationController,
 		RankingController,
+		ReservationKafkaEventConsumer,
 	],
 	exports: [
 		SeatLockService,

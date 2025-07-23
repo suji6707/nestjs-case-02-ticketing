@@ -21,8 +21,14 @@ export class PaymentEventListener {
 	async onPaymentSuccess(event: PaymentSuccessEvent): Promise<void> {
 		this.logger.log('payment.success event received');
 
-		const { reservationId } = event.data;
-		await this.reservationService.confirmReservation(reservationId);
+		const { reservationId, userId, seatId, amount, paymentTxId } = event.data;
+		await this.reservationService.confirmReservation(
+			reservationId,
+			userId,
+			seatId,
+			amount,
+			paymentTxId,
+		);
 		return;
 	}
 
