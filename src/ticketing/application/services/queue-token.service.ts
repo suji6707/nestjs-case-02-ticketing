@@ -77,6 +77,23 @@ export class QueueTokenService implements ITokenService {
 		return true;
 	}
 
+	async verifyTokenWithRetry(
+		userId: number,
+		token: string,
+		neededStatus: TokenStatus,
+		maxRetries = 10,
+		retryInterval = 500
+	) {
+		for (let i = 0; i < maxRetries; i++) {
+			const isValid = await this.verifyToken(userId, token, neededStatus);
+			if (isValid) {
+				return true;
+			}
+			await new Promise((resolve) => setTimeout(resolve, retryInterval));
+		}
+		return false;
+	}
+
 	async deleteToken(token: string): Promise<boolean> {
 		// sorted set에서 삭제
 		await this.queueRankingService.deleteFromWaitingQueue(token);

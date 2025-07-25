@@ -70,7 +70,7 @@ export class ReservationService {
 			// this.logger.log(`[${reserveId}] Queue update: ${queueUpdateTime}ms (userId=${userId}, seatId=${seatId})`);
 			
 			// token verify
-			const isValidToken = await this.queueTokenService.verifyToken(
+			const isValidToken = await this.queueTokenService.verifyTokenWithRetry(
 				userId,
 				queueToken,
 				TokenStatus.PROCESSING, // 예약페이지 접속한 사람만 예약할 수 있음
