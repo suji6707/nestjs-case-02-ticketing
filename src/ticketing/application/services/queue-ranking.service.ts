@@ -47,6 +47,9 @@ export class QueueRankingService implements OnModuleInit {
 	 * 분산락으로 동시성 제어하되, 락 범위를 최소화하여 성능 최적화
 	 */
 	async updateEntireQueue(): Promise<void> {
+		const start = Date.now();
+		const operationId = Math.random().toString(36).substr(2, 9);
+		
 		// 🎯 락 외부에서 상태 확인 (읽기 작업)
 		const maxCount = Number(
 			await this.redisService.get(maxActiveUsersCountKey()),
@@ -58,16 +61,24 @@ export class QueueRankingService implements OnModuleInit {
 
 		// 이동 가능한 사용자 수 미리 계산
 		const moveableCount = Math.min(maxCount - activeCount, waitingCount);
+		
+		this.logger.log(`[${operationId}] Queue status check: maxCount=${maxCount}, activeCount=${activeCount}, waitingCount=${waitingCount}, moveableCount=${moveableCount}`);
+		
 		if (moveableCount <= 0) {
 			return; // 이동할 사용자가 없으면 락 없이 조기 반환
 		}
 
 		// 🔒 실제 큐 조작만 락으로 보호 (쓰기 작업만)
+		const lockAcquireStart = Date.now();
 		await this.distributedLockService.withLock(
 			getQueueUpdateLockKey(),
 			5000, // TTL을 5초 → 3초로 단축
 			async () => {
+				const lockAcquiredTime = Date.now() - lockAcquireStart;
+				this.logger.log(`[${operationId}] Lock acquired in ${lockAcquiredTime}ms`);
+				
 				// 락 내부에서 다시 한번 상태 확인 (Double-checked locking)
+				const doubleCheckStart = Date.now();
 				const currentActiveCount = Number(
 					await this.redisService.zcard(activeQueueKey()),
 				);
@@ -89,10 +100,10 @@ export class QueueRankingService implements OnModuleInit {
 						actualMoveableCount - 1,
 						false,
 					);
-					console.log('tokensToMove', tokensToMove);
 
 					if (tokensToMove.length > 0) {
 						// 배치 처리: Pipeline 사용
+						const pipelineStart = Date.now();
 						const pipeline = this.redisService.pipeline();
 
 						for (let i = 0; i < tokensToMove.length; i++) {
@@ -104,14 +115,22 @@ export class QueueRankingService implements OnModuleInit {
 						}
 
 						await pipeline.exec();
+						const pipelineTime = Date.now() - pipelineStart;
 
 						this.logger.log(
-							`✅ Moved ${actualMoveableCount} users from waiting to active queue`,
+							`[${operationId}] ✅ Pipeline completed: Moved ${actualMoveableCount} users from waiting to active queue in ${pipelineTime}ms`,
 						);
 					}
 				}
 			},
 		);
+		
+		const totalTime = Date.now() - start;
+		if (totalTime > 100) {
+			this.logger.warn(`[${operationId}] 🚨 SLOW QUEUE UPDATE: Total time ${totalTime}ms exceeded 100ms threshold. moveableCount=${moveableCount}, activeCount=${activeCount}, waitingCount=${waitingCount}`);
+		} else {
+			this.logger.log(`[${operationId}] ✅ Queue update completed in ${totalTime}ms`);
+		}
 	}
 
 	/** 대기 순번 확인 폴링시 호출

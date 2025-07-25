@@ -60,9 +60,16 @@ export class ReservationService {
 		seatId: number,
 		queueToken: string,
 	): Promise<ReserveResponseDto> {
+		const reserveId = Math.random().toString(36).substr(2, 9);
+		
 		try {
 			// 전체 큐 업데이트
+			const queueUpdateStart = Date.now();
 			await this.queueRankingService.updateEntireQueue();
+			const queueUpdateTime = Date.now() - queueUpdateStart;
+			
+			this.logger.log(`[${reserveId}] Queue update: ${queueUpdateTime}ms (userId=${userId}, seatId=${seatId})`);
+			
 			// token verify
 			const isValidToken = await this.queueTokenService.verifyToken(
 				userId,
@@ -90,6 +97,7 @@ export class ReservationService {
 				// 	seat,
 				// 	reservation,
 				// );
+				const seatLockStart = Date.now();
 				newReservation =
 					await this.distributedLockService.withLock<Reservation>(
 						getSeatLockKey(seatId),
@@ -101,6 +109,8 @@ export class ReservationService {
 						},
 						1, // 재시도 X. 한 요청만 락을 획득하고 나머지는 실패하는것이 정상
 					);
+				const seatLockTime = Date.now() - seatLockStart;
+				this.logger.log(`[${reserveId}] Seat lock + DB transaction: ${seatLockTime}ms`);
 
 				// Write back to cache (좌석정보)
 				const cacheKey = getSeatsCacheKey(seatId);
