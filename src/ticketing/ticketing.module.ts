@@ -57,6 +57,7 @@ import { SeatPrismaRepository } from './infrastructure/persistence/seat.prisma.r
 			provide: 'ISeatRepository',
 			useClass: SeatPrismaRepository,
 		},
+		QueueRankingService, // TestModule 대기열 초기화용
 	],
 })
 export class TicketingModule {}

@@ -18,5 +18,4 @@ export interface IReservationRepository {
 		reservation: Reservation,
 		expectedStatus: ReservationStatus,
 	): Promise<Reservation>;
-	getReservationContext(reservationId: number): Promise<PaymentSuccessData>;
 }

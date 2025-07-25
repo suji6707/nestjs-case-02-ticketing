@@ -73,6 +73,7 @@ model ConcertScheduleEntity {
 
   seats SeatEntity[]
 
+  // status: AVAILABLE = 0, RESERVED = 1, SOLD = 2
   @@index([concertId])
   @@map("concert_schedules")
 }
@@ -103,6 +104,7 @@ model ReservationEntity {
   createdAt     DateTime   @default(now()) @map("created_at")
   updatedAt     DateTime   @default(now()) @map("updated_at")
 
+  /// status: PENDING = 0, CONFIRMED = 1, EXPIRED = 2, CANCELED = 3
   @@unique([seatId])
   @@index([userId])
   @@map("reservations")
@@ -131,6 +133,7 @@ model PaymentTransactionEntity {
   createdAt         DateTime @default(now()) @map("created_at")
   updatedAt         DateTime @default(now()) @map("updated_at")
 
+  /// status: 1: PENDING, 2: SUCCESS, 3: FAILURE, 4: RETRYING, 5: CANCEL
   @@index([userId, seatId]) 
   @@unique([paymentTxId]) // 중복/동시 결제 방지
   @@map("payment_transactions")

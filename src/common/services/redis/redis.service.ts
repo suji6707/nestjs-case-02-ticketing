@@ -4,7 +4,7 @@ import {
 	Logger,
 	OnApplicationShutdown,
 } from '@nestjs/common';
-import { Redis } from 'ioredis';
+import { ChainableCommander, Redis } from 'ioredis';
 import { REDIS_CLIENT } from 'src/common/utils/constants';
 import {
 	convertMapToArray,
@@ -43,6 +43,10 @@ export class RedisService implements OnApplicationShutdown {
 
 	getConnection(): Redis {
 		return this.client;
+	}
+
+	pipeline(): ChainableCommander {
+		return this.client.pipeline();
 	}
 
 	// sorted set ============================================================

@@ -52,7 +52,7 @@ export class QueueTokenService implements ITokenService {
 		token: string,
 		neededStatus: TokenStatus,
 	): Promise<boolean> {
-		// check sorted set: waitingQueue에 있으면 true
+		// check sorted set: activeQueue에 있으면 true
 		const queueStatus = await this.queueRankingService.checkQueueStatus(token);
 		console.log('queueStatus', queueStatus);
 		if (
@@ -75,6 +75,23 @@ export class QueueTokenService implements ITokenService {
 		}
 
 		return true;
+	}
+
+	async verifyTokenWithRetry(
+		userId: number,
+		token: string,
+		neededStatus: TokenStatus,
+		maxRetries = 3,
+		retryInterval = 200
+	) {
+		for (let i = 0; i < maxRetries; i++) {
+			const isValid = await this.verifyToken(userId, token, neededStatus);
+			if (isValid) {
+				return true;
+			}
+			await new Promise((resolve) => setTimeout(resolve, retryInterval));
+		}
+		return false;
 	}
 
 	async deleteToken(token: string): Promise<boolean> {

@@ -6,3 +6,4 @@
 - [ERD](docs/erd.md)
 - [인프라 구성도](docs/infra_diagram.md)
 - [동시성 제어 보고서](docs/concurrency.md)
+- [장애대응 보고서](docs/incident-manage.md)

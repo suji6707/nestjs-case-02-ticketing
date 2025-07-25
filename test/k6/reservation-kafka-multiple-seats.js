@@ -28,8 +28,8 @@ export const options = {
 		login_success: ['count==50'], // All 50 should succeed
 		queue_token_success: ['count==50'], // All 50 should succeed
 		charge_success: ['count==50'], // All 50 should succeed
-		reserve_success: ['count==1'], // Only 1 should succeed
-		payment_success: ['count==1'], // Only 1 should succeed
+		reserve_success: ['count==50'], // All 50 should succeed
+		payment_success: ['count==50'], // All 50 should succeed
 		// Latency thresholds
 		login_latency: ['p(95)<2000'], // Login should be under 2s
 		queue_token_latency: ['p(95)<1000'], // Queue token should be under 1s
@@ -146,7 +146,8 @@ export default function () {
 	chargeLatency.add(res3.timings.duration);
 
 	// 임시 예약 ============================================================
-	const seatId = 1; // 동시에 한 좌석 예약
+	// VU ID를 사용하여 각 사용자가 다른 좌석 예약 (1~50)
+	const seatId = __VU; // VU ID는 1부터 시작
 	const payload4 = JSON.stringify({
 		seatId,
 		queueToken,

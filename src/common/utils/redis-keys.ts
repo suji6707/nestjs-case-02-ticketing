@@ -41,6 +41,10 @@ export const getPaymentLockKey = (seatId: number): string => {
 	return `payment:${seatId}`;
 };
 
+export const getQueueUpdateLockKey = (): string => {
+	return 'queue:update:lock';
+};
+
 // 캐싱 관련
 export const getSchedulesCacheKey = (concertId: number): string => {
 	return `concert:${concertId}:schedules`;

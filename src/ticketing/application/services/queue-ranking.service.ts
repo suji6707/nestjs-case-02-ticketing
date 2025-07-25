@@ -1,7 +1,10 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { IDistributedLockService } from 'src/common/interfaces/idistributed-lock.service';
 import { RedisService } from 'src/common/services/redis/redis.service';
+import { DISTRIBUTED_LOCK_SERVICE } from 'src/common/utils/constants';
 import {
 	activeQueueKey,
+	getQueueUpdateLockKey,
 	maxActiveUsersCountKey,
 	waitingQueueKey,
 } from 'src/common/utils/redis-keys';
@@ -10,7 +13,11 @@ import {
 export class QueueRankingService implements OnModuleInit {
 	private readonly logger = new Logger(QueueRankingService.name);
 
-	constructor(private readonly redisService: RedisService) {}
+	constructor(
+		private readonly redisService: RedisService,
+		@Inject(DISTRIBUTED_LOCK_SERVICE)
+		private readonly distributedLockService: IDistributedLockService,
+	) {}
 
 	async onModuleInit(): Promise<void> {
 		await this.initialize();
@@ -36,25 +43,92 @@ export class QueueRankingService implements OnModuleInit {
 	}
 
 	/**
-	 * Queue 업데이트: max count만큼 찰 때까지 waiting -> active로 전환
+	 * 🔄 대기열 큐 전체 업데이트
+	 * 분산락으로 동시성 제어하되, 락 범위를 최소화하여 성능 최적화
 	 */
 	async updateEntireQueue(): Promise<void> {
+		const start = Date.now();
+		const operationId = Math.random().toString(36).substr(2, 9);
+		
+		// 🎯 락 외부에서 상태 확인 (읽기 작업)
 		const maxCount = Number(
 			await this.redisService.get(maxActiveUsersCountKey()),
 		);
-		let activeCount = Number(await this.redisService.zcard(activeQueueKey()));
-		let waitingCount = Number(await this.redisService.zcard(waitingQueueKey()));
-		while (activeCount < maxCount && waitingCount > 0) {
-			// waiting queue의 1순위를 active queue로 전환
-			const token = (
-				await this.redisService.zrange(waitingQueueKey(), 0, 0)
-			)[0];
-			console.log('1st rank token: ', token.slice(-10));
-			await this.redisService.zrem(waitingQueueKey(), token);
-			await this.redisService.zadd(activeQueueKey(), Date.now(), token);
-			// update count
-			activeCount = Number(await this.redisService.zcard(activeQueueKey()));
-			waitingCount = Number(await this.redisService.zcard(waitingQueueKey()));
+		const activeCount = Number(await this.redisService.zcard(activeQueueKey()));
+		const waitingCount = Number(
+			await this.redisService.zcard(waitingQueueKey()),
+		);
+
+		// 이동 가능한 사용자 수 미리 계산
+		const moveableCount = Math.min(maxCount - activeCount, waitingCount);
+		
+		this.logger.log(`[${operationId}] Queue status check: maxCount=${maxCount}, activeCount=${activeCount}, waitingCount=${waitingCount}, moveableCount=${moveableCount}`);
+		
+		if (moveableCount <= 0) {
+			return; // 이동할 사용자가 없으면 락 없이 조기 반환
+		}
+
+		// 🔒 실제 큐 조작만 락으로 보호 (쓰기 작업만)
+		const lockAcquireStart = Date.now();
+		await this.distributedLockService.withLock(
+			getQueueUpdateLockKey(),
+			5000, // TTL을 5초 → 3초로 단축
+			async () => {
+				const lockAcquiredTime = Date.now() - lockAcquireStart;
+				this.logger.log(`[${operationId}] Lock acquired in ${lockAcquiredTime}ms`);
+				
+				// 락 내부에서 다시 한번 상태 확인 (Double-checked locking)
+				const currentActiveCount = Number(
+					await this.redisService.zcard(activeQueueKey()),
+				);
+				const currentWaitingCount = Number(
+					await this.redisService.zcard(waitingQueueKey()),
+				);
+
+				const actualMoveableCount = Math.min(
+					maxCount - currentActiveCount,
+					currentWaitingCount,
+				);
+
+				// 배치로 한번에 처리하여 Redis 호출 횟수 최소화
+				if (actualMoveableCount > 0) {
+					// [token1, score1, token2, score2, ...]
+					const tokensToMove = await this.redisService.zrange(
+						waitingQueueKey(),
+						0,
+						actualMoveableCount - 1,
+						false,
+					);
+
+					if (tokensToMove.length > 0) {
+						// 배치 처리: Pipeline 사용
+						const pipelineStart = Date.now();
+						const pipeline = this.redisService.pipeline();
+
+						for (let i = 0; i < tokensToMove.length; i++) {
+							const token = tokensToMove[i];
+							// Active queue에 추가
+							pipeline.zadd(activeQueueKey(), Date.now(), token);
+							// Waiting queue에서 제거
+							pipeline.zrem(waitingQueueKey(), token);
+						}
+
+						await pipeline.exec();
+						const pipelineTime = Date.now() - pipelineStart;
+
+						this.logger.log(
+							`[${operationId}] ✅ Pipeline completed: Moved ${actualMoveableCount} users from waiting to active queue in ${pipelineTime}ms`,
+						);
+					}
+				}
+			},
+		);
+		
+		const totalTime = Date.now() - start;
+		if (totalTime > 100) {
+			this.logger.warn(`[${operationId}] 🚨 SLOW QUEUE UPDATE: Total time ${totalTime}ms exceeded 100ms threshold. moveableCount=${moveableCount}, activeCount=${activeCount}, waitingCount=${waitingCount}`);
+		} else {
+			this.logger.log(`[${operationId}] ✅ Queue update completed in ${totalTime}ms`);
 		}
 	}
 

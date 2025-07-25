@@ -42,10 +42,10 @@ export class DistributedLockService implements IDistributedLockService {
 		}
 		try {
 			// 비즈니스 로직 및 에러처리는 알지 못함 -> 쓰는 곳에서 try catch
-			console.log('acquireLock');
+			console.log(`[AcquireLock] ${key}`);
 			return await action();
 		} finally {
-			console.log('releaseLock');
+			console.log(`[ReleaseLock] ${key}`);
 			await this.releaseLock(key);
 		}
 	}
