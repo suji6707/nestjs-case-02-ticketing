@@ -471,6 +471,22 @@ Consumer가 컨트롤러임.
 @EventPattern('reservation.success') 이런 이벤트 네임이 API URI 같은거고.
 이벤트를 수신하는거니까. HTTP 통신이 아닐 뿐. 
 
+(참고) Nestjs 마이크로서비스
+NestJS 마이크로서비스란 HTTP가 아닌 다른 전송 계층(Transport Layer)을 사용하는 애플리케이션을 의미
+- 같은 컴포넌트가 http, websocket, microservice에 걸쳐 통용될 수 있음.
+
+패턴 두 종류
+1. Message 패턴 = Request-Response
+두 개의 파이프라인(채널)을 유지. 요청을 보내고 답장 올 때까지 기다림.
+2. Event 패턴 
+- 응답 기다리지 않음. 
+
+Kafka는 ClientProxy 대신 **Kafka 전용 대리인인 ClientKafkaProxy**를 사용
+- Kafka는 본질적으로 단방향 '방송' 시스템입니다. A가 B에게 메시지를 보내면 끝입니다. B가 A에게 직접 답장을 보내는 내장 기능이 없습니다.
+> 응답용 토픽(Reply Topic) 관리
+> 응답 구독: ClientKafkaProxy는 응답을 받기 위해 자기 스스로가 Consumer(소비자)가 됨
+응답을 받기 위해 consumer.groupId 설정해야. 
+
 ---
 파티션 병렬 처리를 위한 방법
 - 동일한 앱을 여러 인스턴스로 실행

@@ -73,8 +73,6 @@ export class ReservationPrismaRepository implements IReservationRepository {
 					paidAt: reservation.paidAt,
 				},
 			});
-			console.log('🟢🟢reservation', reservation);
-			console.log('🟢🟢entity', entity);
 			if (!entity || entity.status !== reservation.status) {
 				throw new Error('Failed to update reservation 1');
 			}

@@ -62,15 +62,28 @@ export class TestService {
 		await this.prismaService.$executeRaw`DELETE FROM concerts;`;
 		await this.prismaService
 			.$executeRaw`DELETE FROM users WHERE email LIKE 'test_%@example.com';`;
+		// 기타
+		await this.prismaService.$executeRaw`DELETE FROM payment_transactions;`;
+		await this.prismaService.$executeRaw`DELETE FROM event_logs;`;
 
+		// AUTO_INCREMENT 리셋
 		await this.prismaService
 			.$executeRaw`ALTER TABLE reservations AUTO_INCREMENT = 1;`;
+		await this.prismaService
+			.$executeRaw`ALTER TABLE user_points AUTO_INCREMENT = 1;`;
+		await this.prismaService
+			.$executeRaw`ALTER TABLE point_histories AUTO_INCREMENT = 1;`;
 		await this.prismaService.$executeRaw`ALTER TABLE seats AUTO_INCREMENT = 1;`;
 		await this.prismaService
 			.$executeRaw`ALTER TABLE concert_schedules AUTO_INCREMENT = 1;`;
 		await this.prismaService
 			.$executeRaw`ALTER TABLE concerts AUTO_INCREMENT = 1;`;
 		await this.prismaService.$executeRaw`ALTER TABLE users AUTO_INCREMENT = 1;`;
+		// 기타
+		await this.prismaService
+			.$executeRaw`ALTER TABLE payment_transactions AUTO_INCREMENT = 1;`;
+		await this.prismaService
+			.$executeRaw`ALTER TABLE event_logs AUTO_INCREMENT = 1;`;
 
 		// 콘서트 생성
 		const concert = await this.prismaService.concertEntity.create({
