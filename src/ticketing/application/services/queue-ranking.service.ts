@@ -78,7 +78,6 @@ export class QueueRankingService implements OnModuleInit {
 				this.logger.log(`[${operationId}] Lock acquired in ${lockAcquiredTime}ms`);
 				
 				// 락 내부에서 다시 한번 상태 확인 (Double-checked locking)
-				const doubleCheckStart = Date.now();
 				const currentActiveCount = Number(
 					await this.redisService.zcard(activeQueueKey()),
 				);
