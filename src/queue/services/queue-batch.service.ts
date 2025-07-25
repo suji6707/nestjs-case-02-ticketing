@@ -20,7 +20,7 @@ export class QueueBatchService {
 	 */
 	startQueueScheduler(): void {
 		// 500ms 간격으로 큐 업데이트 (추천)
-		this.queueSchedulerService.startBatchScheduler(500);
+		this.queueSchedulerService.startBatchScheduler(100);
 		
 		// 더 빠른 응답이 필요한 경우 200ms 사용
 		// this.queueSchedulerService.startFastScheduler();

@@ -81,8 +81,8 @@ export class QueueTokenService implements ITokenService {
 		userId: number,
 		token: string,
 		neededStatus: TokenStatus,
-		maxRetries = 10,
-		retryInterval = 500
+		maxRetries = 3,
+		retryInterval = 200
 	) {
 		for (let i = 0; i < maxRetries; i++) {
 			const isValid = await this.verifyToken(userId, token, neededStatus);
