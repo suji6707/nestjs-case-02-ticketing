@@ -63,12 +63,11 @@ export class ReservationService {
 		const reserveId = Math.random().toString(36).substr(2, 9);
 		
 		try {
-			// 전체 큐 업데이트
-			const queueUpdateStart = Date.now();
-			await this.queueRankingService.updateEntireQueue();
-			const queueUpdateTime = Date.now() - queueUpdateStart;
-			
-			this.logger.log(`[${reserveId}] Queue update: ${queueUpdateTime}ms (userId=${userId}, seatId=${seatId})`);
+			// 전체 큐 업데이트 -> 스케줄러에 위임
+			// const queueUpdateStart = Date.now();
+			// await this.queueRankingService.updateEntireQueue();
+			// const queueUpdateTime = Date.now() - queueUpdateStart;
+			// this.logger.log(`[${reserveId}] Queue update: ${queueUpdateTime}ms (userId=${userId}, seatId=${seatId})`);
 			
 			// token verify
 			const isValidToken = await this.queueTokenService.verifyToken(
